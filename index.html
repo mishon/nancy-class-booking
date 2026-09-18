@@ -32,8 +32,7 @@
       background: white;
       border-radius: 16px;
       padding: 24px;
-      box-shadow:
-        0 2px 10px rgba(0,0,0,0.08);
+      box-shadow: 0 2px 10px rgba(0,0,0,0.08);
     }
 
     h1 {
@@ -129,7 +128,6 @@ async function init() {
       "⑤ 取得課程資料中...";
 
 
-    // 建立 GAS iframe
     gasFrame =
       document.createElement("iframe");
 
@@ -140,7 +138,6 @@ async function init() {
     document.body.appendChild(gasFrame);
 
 
-    // 等 GAS iframe 載入
     gasFrame.onload = function() {
 
       gasFrame.contentWindow.postMessage(
@@ -166,7 +163,6 @@ async function init() {
 }
 
 
-// 接收 GAS 回傳
 window.addEventListener(
   "message",
   function(event) {
