@@ -2,6 +2,7 @@
 <html lang="zh-Hant">
 
 <head>
+
   <meta charset="UTF-8">
 
   <meta
@@ -14,9 +15,14 @@
   <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
 
   <style>
+
     body {
-      font-family: -apple-system, BlinkMacSystemFont,
-                   "Segoe UI", sans-serif;
+      font-family:
+        -apple-system,
+        BlinkMacSystemFont,
+        "Segoe UI",
+        sans-serif;
+
       padding: 24px;
       margin: 0;
       background: #f7f7f7;
@@ -26,7 +32,8 @@
       background: white;
       border-radius: 16px;
       padding: 24px;
-      box-shadow: 0 2px 10px rgba(0,0,0,0.08);
+      box-shadow:
+        0 2px 10px rgba(0,0,0,0.08);
     }
 
     h1 {
@@ -37,7 +44,9 @@
       white-space: pre-wrap;
       line-height: 1.6;
     }
+
   </style>
+
 </head>
 
 <body>
@@ -52,12 +61,18 @@
 
 </div>
 
+
 <script>
 
-const LIFF_ID = "2011656647-Tw5kY4xl";
+const LIFF_ID =
+  "2011656647-Tw5kY4xl";
+
 
 const GAS_URL =
   "https://script.google.com/macros/s/AKfycbzoDeakQtcTqIHCeJoqaTaGIpkkAsWZMk34gXu1G1m1QWWFEgPZfTsIonKSMZxu74Mu2g/exec";
+
+
+let gasFrame = null;
 
 
 async function init() {
@@ -70,10 +85,12 @@ async function init() {
     status.textContent =
       "① 初始化 LIFF...";
 
+
     await liff.init({
       liffId: LIFF_ID,
       withLoginOnExternalBrowser: true
     });
+
 
     status.textContent =
       "② LIFF 初始化成功";
@@ -108,22 +125,33 @@ async function init() {
 
 
     status.textContent =
-      "④ 已取得 ID Token";
+      "④ 已取得 ID Token\n" +
+      "⑤ 取得課程資料中...";
 
 
-    /*
-     * 暫時只把 GAS URL 顯示出來
-     * 下一步再接 GAS API
-     */
+    // 建立 GAS iframe
+    gasFrame =
+      document.createElement("iframe");
 
-    console.log("GAS URL:", GAS_URL);
+    gasFrame.src = GAS_URL;
 
-    console.log("ID Token:", idToken);
+    gasFrame.style.display = "none";
 
-    status.textContent =
-      "⑤ LIFF 測試成功！\n\n" +
-      "已成功取得 LINE ID Token。";
+    document.body.appendChild(gasFrame);
 
+
+    // 等 GAS iframe 載入
+    gasFrame.onload = function() {
+
+      gasFrame.contentWindow.postMessage(
+        {
+          type: "GET_BOOKING_DATA",
+          idToken: idToken
+        },
+        "*"
+      );
+
+    };
 
   } catch (error) {
 
@@ -136,6 +164,70 @@ async function init() {
   }
 
 }
+
+
+// 接收 GAS 回傳
+window.addEventListener(
+  "message",
+  function(event) {
+
+    const data = event.data;
+
+    if (!data) {
+      return;
+    }
+
+
+    if (data.type === "BOOKING_DATA") {
+
+      console.log(
+        "課程資料：",
+        data.data
+      );
+
+
+      const result =
+        data.data;
+
+
+      document.getElementById(
+        "status"
+      ).textContent =
+        "⑥ 課程資料取得成功！\n\n" +
+        "使用者：" +
+        result.userName +
+        "\n" +
+        "課程數量：" +
+        result.classes.length +
+        " 堂";
+
+
+      document.body.insertAdjacentHTML(
+        "beforeend",
+        "<pre>" +
+        JSON.stringify(
+          result,
+          null,
+          2
+        ) +
+        "</pre>"
+      );
+
+    }
+
+
+    if (data.type === "BOOKING_ERROR") {
+
+      document.getElementById(
+        "status"
+      ).textContent =
+        "❌ GAS 取得課程失敗：\n" +
+        data.message;
+
+    }
+
+  }
+);
 
 
 init();
