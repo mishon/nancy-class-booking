@@ -1,0 +1,1520 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+
+<head>
+
+  <meta charset="UTF-8">
+
+  <meta
+    name="viewport"
+    content="width=device-width, initial-scale=1, maximum-scale=1"
+  >
+
+  <title>課程預約</title>
+
+  <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+
+
+  <style>
+
+    * {
+      box-sizing: border-box;
+    }
+
+
+    body {
+
+      margin: 0;
+
+      padding: 20px;
+
+      background: #f7f7f7;
+
+      font-family:
+        -apple-system,
+        BlinkMacSystemFont,
+        "Segoe UI",
+        "Noto Sans TC",
+        sans-serif;
+
+      color: #222;
+    }
+
+
+    .container {
+
+      max-width: 600px;
+
+      margin: 20px auto;
+    }
+
+
+    .header {
+
+      background: white;
+
+      padding: 24px;
+
+      border-radius: 18px;
+
+      margin-bottom: 16px;
+
+      box-shadow:
+        0 3px 12px rgba(0, 0, 0, 0.08);
+    }
+
+
+    h1 {
+
+      margin: 0 0 8px 0;
+
+      font-size: 30px;
+    }
+
+
+    .user {
+
+      color: #666;
+
+      font-size: 16px;
+    }
+
+
+    .status {
+
+      background: white;
+
+      padding: 16px;
+
+      border-radius: 14px;
+
+      margin-bottom: 16px;
+
+      line-height: 1.6;
+
+      white-space: pre-wrap;
+    }
+
+
+    /* =====================================================
+       課程卡片
+       ===================================================== */
+
+    .class-card {
+
+      position: relative;
+
+      background: white;
+
+      border-radius: 16px;
+
+      padding: 18px;
+
+      margin-bottom: 12px;
+
+      box-shadow:
+        0 2px 8px rgba(0, 0, 0, 0.06);
+
+      cursor: pointer;
+
+      transition:
+        transform 0.1s,
+        box-shadow 0.1s;
+    }
+
+
+    .class-card:active {
+
+      transform: scale(0.99);
+    }
+
+
+    .class-card.selected {
+
+      box-shadow:
+        0 0 0 3px #1a73e8;
+    }
+
+
+    .class-card.disabled {
+
+      opacity: 0.55;
+
+      cursor: default;
+    }
+
+
+    /* =====================================================
+       Checkbox
+       ===================================================== */
+
+    .checkbox {
+
+      position: absolute;
+
+      top: 18px;
+
+      right: 18px;
+
+      width: 26px;
+
+      height: 26px;
+
+      border: 2px solid #aaa;
+
+      border-radius: 50%;
+
+      display: flex;
+
+      align-items: center;
+
+      justify-content: center;
+
+      font-size: 16px;
+
+      font-weight: bold;
+    }
+
+
+    .class-card.selected .checkbox {
+
+      background: #1a73e8;
+
+      border-color: #1a73e8;
+
+      color: white;
+    }
+
+
+    .class-card.disabled .checkbox {
+
+      border-color: #ccc;
+    }
+
+
+    /* =====================================================
+       日期
+       ===================================================== */
+
+    .class-date {
+
+      font-size: 21px;
+
+      font-weight: 700;
+
+      margin-bottom: 6px;
+
+      padding-right: 40px;
+    }
+
+
+    .class-time {
+
+      font-size: 17px;
+
+      color: #555;
+
+      margin-bottom: 10px;
+    }
+
+
+    .class-count {
+
+      font-size: 16px;
+
+      margin-bottom: 8px;
+    }
+
+
+    .class-names {
+
+      font-size: 14px;
+
+      color: #666;
+
+      line-height: 1.6;
+    }
+
+
+    .available {
+
+      color: #16803c;
+
+      font-weight: 600;
+    }
+
+
+    .full {
+
+      color: #d93025;
+
+      font-weight: 600;
+    }
+
+
+    .booked {
+
+      color: #1a73e8;
+
+      font-weight: 600;
+    }
+
+
+    /* =====================================================
+       底部預約區
+       ===================================================== */
+
+    .booking-bar {
+
+      position: sticky;
+
+      bottom: 12px;
+
+      background: white;
+
+      padding: 16px;
+
+      border-radius: 16px;
+
+      margin-top: 20px;
+
+      box-shadow:
+        0 3px 16px rgba(0, 0, 0, 0.15);
+    }
+
+
+    .selected-info {
+
+      text-align: center;
+
+      margin-bottom: 12px;
+
+      color: #555;
+
+      font-size: 15px;
+    }
+
+
+    .booking-button {
+
+      width: 100%;
+
+      border: none;
+
+      border-radius: 12px;
+
+      padding: 15px;
+
+      font-size: 18px;
+
+      font-weight: 700;
+
+      background: #1a73e8;
+
+      color: white;
+
+      cursor: pointer;
+    }
+
+
+    .booking-button:disabled {
+
+      background: #ccc;
+
+      cursor: default;
+    }
+
+
+    /* =====================================================
+       預約結果
+       ===================================================== */
+
+    .result {
+
+      background: white;
+
+      border-radius: 16px;
+
+      padding: 20px;
+
+      margin-bottom: 16px;
+
+      line-height: 1.7;
+    }
+
+
+    .result-title {
+
+      font-size: 21px;
+
+      font-weight: 700;
+
+      margin-bottom: 12px;
+    }
+
+
+    .result-success {
+
+      color: #16803c;
+
+      margin-bottom: 6px;
+    }
+
+
+    .result-failed {
+
+      color: #d93025;
+
+      margin-bottom: 6px;
+    }
+
+
+    .loading {
+
+      text-align: center;
+
+      padding: 20px;
+
+      color: #666;
+    }
+
+  </style>
+
+</head>
+
+
+<body>
+
+
+<div class="container">
+
+
+  <!-- =====================================================
+       Header
+       ===================================================== -->
+
+  <div class="header">
+
+    <h1>課程預約</h1>
+
+    <div
+      id="userName"
+      class="user"
+    >
+      使用者資料載入中...
+    </div>
+
+  </div>
+
+
+  <!-- =====================================================
+       狀態
+       ===================================================== -->
+
+  <div
+    id="status"
+    class="status"
+  >
+    ① 初始化 LIFF...
+  </div>
+
+
+  <!-- =====================================================
+       預約結果
+       ===================================================== -->
+
+  <div
+    id="result"
+    style="display:none;"
+  ></div>
+
+
+  <!-- =====================================================
+       課程列表
+       ===================================================== -->
+
+  <div id="classes"></div>
+
+
+  <!-- =====================================================
+       預約按鈕
+       ===================================================== -->
+
+  <div
+    id="bookingBar"
+    class="booking-bar"
+    style="display:none;"
+  >
+
+    <div
+      id="selectedInfo"
+      class="selected-info"
+    >
+      尚未選擇課程
+    </div>
+
+
+    <button
+      id="bookingButton"
+      class="booking-button"
+      disabled
+      onclick="submitBookings()"
+    >
+      確定預約
+    </button>
+
+  </div>
+
+
+</div>
+
+
+<script>
+
+
+// =========================================================
+// 基本設定
+// =========================================================
+
+const LIFF_ID =
+  "2011656647-Tw5kY4xl";
+
+
+const GAS_URL =
+  "https://script.google.com/macros/s/AKfycbzoDeakQtcTqIHCeJoqaTaGIpkkAsWZMk34gXu1G1m1QWWFEgPZfTsIonKSMZxu74Mu2g/exec";
+
+
+// =========================================================
+// 全域資料
+// =========================================================
+
+let idToken = "";
+
+let classes = [];
+
+let selectedClassIds = [];
+
+let isSubmitting = false;
+
+
+// =========================================================
+// UI
+// =========================================================
+
+function setStatus(message) {
+
+  document.getElementById(
+    "status"
+  ).textContent = message;
+
+}
+
+
+// =========================================================
+// GAS 取得課程資料 Callback
+// =========================================================
+
+window.gasBookingCallback =
+  function(response) {
+
+    console.log(
+      "GAS Booking Response:",
+      response
+    );
+
+
+    if (!response) {
+
+      setStatus(
+        "❌ GAS 回傳空資料"
+      );
+
+      return;
+    }
+
+
+    if (!response.success) {
+
+      setStatus(
+        "❌ GAS 取得課程失敗\n\n" +
+        response.message
+      );
+
+      return;
+    }
+
+
+    const data =
+      response.data;
+
+
+    if (!data) {
+
+      setStatus(
+        "❌ GAS 沒有回傳課程資料"
+      );
+
+      return;
+    }
+
+
+    document.getElementById(
+      "userName"
+    ).textContent =
+      "您好，" +
+      (data.userName || "會員");
+
+
+    classes =
+      data.classes || [];
+
+
+    setStatus(
+      "⑥ 課程資料取得成功\n\n" +
+      "請選擇要預約的日期"
+    );
+
+
+    renderClasses();
+
+  };
+
+
+// =========================================================
+// GAS 批次預約 Callback
+// =========================================================
+
+window.gasSubmitCallback =
+  function(response) {
+
+    console.log(
+      "GAS Submit Response:",
+      response
+    );
+
+
+    isSubmitting = false;
+
+
+    const button =
+      document.getElementById(
+        "bookingButton"
+      );
+
+
+    button.disabled = false;
+
+    button.textContent =
+      "確定預約";
+
+
+    if (!response) {
+
+      showResultError(
+        "GAS 回傳空資料"
+      );
+
+      return;
+    }
+
+
+    if (!response.success) {
+
+      showResultError(
+        response.message ||
+        "預約失敗"
+      );
+
+      return;
+    }
+
+
+    // =====================================================
+    // 顯示預約結果
+    // =====================================================
+
+    showBookingResult(
+      response.data
+    );
+
+
+    // =====================================================
+    // 預約完成後重新取得全部課程
+    // =====================================================
+
+    selectedClassIds = [];
+
+    setTimeout(
+      function() {
+
+        loadClasses();
+
+      },
+      800
+    );
+
+  };
+
+
+// =========================================================
+// 顯示課程
+// =========================================================
+
+function renderClasses() {
+
+  const container =
+    document.getElementById(
+      "classes"
+    );
+
+
+  container.innerHTML = "";
+
+
+  if (!classes.length) {
+
+    container.innerHTML =
+      '<div class="class-card">目前沒有課程</div>';
+
+    return;
+  }
+
+
+  classes.forEach(
+    function(cls) {
+
+      const card =
+        document.createElement(
+          "div"
+        );
+
+
+      card.className =
+        "class-card";
+
+
+      const isFull =
+        cls.count >= cls.maxPeople;
+
+
+      const isBooked =
+        cls.bookedByMe;
+
+
+      const isDisabled =
+        isFull || isBooked;
+
+
+      if (isDisabled) {
+
+        card.classList.add(
+          "disabled"
+        );
+
+      }
+
+
+      if (
+        selectedClassIds.includes(
+          cls.classId
+        )
+      ) {
+
+        card.classList.add(
+          "selected"
+        );
+
+      }
+
+
+      // -----------------------------------------------------
+      // Checkbox
+      // -----------------------------------------------------
+
+      const checkbox =
+        document.createElement(
+          "div"
+        );
+
+
+      checkbox.className =
+        "checkbox";
+
+
+      if (
+        selectedClassIds.includes(
+          cls.classId
+        )
+      ) {
+
+        checkbox.textContent =
+          "✓";
+
+      }
+
+
+      card.appendChild(
+        checkbox
+      );
+
+
+      // -----------------------------------------------------
+      // 日期
+      // -----------------------------------------------------
+
+      const date =
+        document.createElement(
+          "div"
+        );
+
+
+      date.className =
+        "class-date";
+
+
+      date.textContent =
+        cls.date +
+        "（" +
+        cls.weekday +
+        "）";
+
+
+      // -----------------------------------------------------
+      // 時間
+      // -----------------------------------------------------
+
+      const time =
+        document.createElement(
+          "div"
+        );
+
+
+      time.className =
+        "class-time";
+
+
+      time.textContent =
+        cls.time;
+
+
+      // -----------------------------------------------------
+      // 人數
+      // -----------------------------------------------------
+
+      const count =
+        document.createElement(
+          "div"
+        );
+
+
+      count.className =
+        "class-count";
+
+
+      count.textContent =
+        "目前 " +
+        cls.count +
+        " / " +
+        cls.maxPeople +
+        " 人";
+
+
+      // -----------------------------------------------------
+      // 狀態
+      // -----------------------------------------------------
+
+      const status =
+        document.createElement(
+          "div"
+        );
+
+
+      if (isBooked) {
+
+        status.className =
+          "booked";
+
+        status.textContent =
+          "✓ 已預約";
+
+      }
+      else if (isFull) {
+
+        status.className =
+          "full";
+
+        status.textContent =
+          "● 已額滿";
+
+      }
+      else {
+
+        status.className =
+          "available";
+
+        status.textContent =
+          "○ 可預約";
+
+      }
+
+
+      // -----------------------------------------------------
+      // 名單
+      // -----------------------------------------------------
+
+      const names =
+        document.createElement(
+          "div"
+        );
+
+
+      names.className =
+        "class-names";
+
+
+      if (
+        cls.names &&
+        cls.names.length
+      ) {
+
+        names.textContent =
+          "已預約：" +
+          cls.names.join("、");
+
+      }
+      else {
+
+        names.textContent =
+          "目前尚無預約";
+
+      }
+
+
+      card.appendChild(
+        date
+      );
+
+      card.appendChild(
+        time
+      );
+
+      card.appendChild(
+        count
+      );
+
+      card.appendChild(
+        status
+      );
+
+      card.appendChild(
+        names
+      );
+
+
+      // -----------------------------------------------------
+      // 點擊
+      // -----------------------------------------------------
+
+      if (!isDisabled) {
+
+        card.addEventListener(
+          "click",
+          function() {
+
+            toggleClass(
+              cls.classId
+            );
+
+          }
+        );
+
+      }
+
+
+      container.appendChild(
+        card
+      );
+
+    }
+  );
+
+
+  updateBookingBar();
+
+}
+
+
+// =========================================================
+// 選擇 / 取消選擇
+// =========================================================
+
+function toggleClass(classId) {
+
+  const index =
+    selectedClassIds.indexOf(
+      classId
+    );
+
+
+  if (index >= 0) {
+
+    selectedClassIds.splice(
+      index,
+      1
+    );
+
+  }
+  else {
+
+    selectedClassIds.push(
+      classId
+    );
+
+  }
+
+
+  renderClasses();
+
+}
+
+
+// =========================================================
+// 更新預約按鈕
+// =========================================================
+
+function updateBookingBar() {
+
+  const bar =
+    document.getElementById(
+      "bookingBar"
+    );
+
+
+  const info =
+    document.getElementById(
+      "selectedInfo"
+    );
+
+
+  const button =
+    document.getElementById(
+      "bookingButton"
+    );
+
+
+  bar.style.display =
+    "block";
+
+
+  const count =
+    selectedClassIds.length;
+
+
+  if (count === 0) {
+
+    info.textContent =
+      "尚未選擇課程";
+
+
+    button.disabled =
+      true;
+
+
+    return;
+  }
+
+
+  info.textContent =
+    "已選擇 " +
+    count +
+    " 堂課程";
+
+
+  button.disabled =
+    false;
+
+}
+
+
+// =========================================================
+// 送出批次預約
+// =========================================================
+
+function submitBookings() {
+
+  if (isSubmitting) {
+    return;
+  }
+
+
+  if (
+    selectedClassIds.length === 0
+  ) {
+
+    alert(
+      "請至少選擇一堂課程"
+    );
+
+    return;
+  }
+
+
+  // =======================================================
+  // 再確認一次
+  // =======================================================
+
+  const selectedClasses =
+    classes.filter(
+      function(cls) {
+
+        return selectedClassIds.includes(
+          cls.classId
+        );
+
+      }
+    );
+
+
+  const dateText =
+    selectedClasses
+      .map(
+        function(cls) {
+
+          return (
+            cls.date +
+            "（" +
+            cls.weekday +
+            "）"
+          );
+
+        }
+      )
+      .join("\n");
+
+
+  const confirmed =
+    confirm(
+      "確定要預約以下課程嗎？\n\n" +
+      dateText
+    );
+
+
+  if (!confirmed) {
+    return;
+  }
+
+
+  isSubmitting = true;
+
+
+  const button =
+    document.getElementById(
+      "bookingButton"
+    );
+
+
+  button.disabled =
+    true;
+
+
+  button.textContent =
+    "預約處理中...";
+
+
+  setStatus(
+    "正在處理預約，請稍候..."
+  );
+
+
+  // =======================================================
+  // 建立 JSONP
+  // =======================================================
+
+  const oldScript =
+    document.getElementById(
+      "gas-submit-script"
+    );
+
+
+  if (oldScript) {
+    oldScript.remove();
+  }
+
+
+  const script =
+    document.createElement(
+      "script"
+    );
+
+
+  script.id =
+    "gas-submit-script";
+
+
+  const classIdsJson =
+    JSON.stringify(
+      selectedClassIds
+    );
+
+
+  script.src =
+    GAS_URL +
+    "?action=submitBookings" +
+    "&callback=gasSubmitCallback" +
+    "&idToken=" +
+    encodeURIComponent(
+      idToken
+    ) +
+    "&selectedClassIds=" +
+    encodeURIComponent(
+      classIdsJson
+    ) +
+    "&_=" +
+    Date.now();
+
+
+  script.onerror =
+    function() {
+
+      isSubmitting = false;
+
+
+      button.disabled =
+        false;
+
+
+      button.textContent =
+        "確定預約";
+
+
+      showResultError(
+        "無法連線到 GAS"
+      );
+
+    };
+
+
+  document.body.appendChild(
+    script
+  );
+
+}
+
+
+// =========================================================
+// 顯示預約結果
+// =========================================================
+
+function showBookingResult(data) {
+
+  const result =
+    document.getElementById(
+      "result"
+    );
+
+
+  result.style.display =
+    "block";
+
+
+  result.className =
+    "result";
+
+
+  let html =
+    '<div class="result-title">預約結果</div>';
+
+
+  /*
+   * submitSelectedBookings()
+   * 如果回傳的是：
+   *
+   * {
+   *   userName: "...",
+   *   classes: [...]
+   * }
+   *
+   * 我們可以從重新整理後的資料判斷結果。
+   */
+
+
+  if (
+    data &&
+    data.classes
+  ) {
+
+    const latestClasses =
+      data.classes;
+
+
+    selectedClassIds.forEach(
+      function(classId) {
+
+        const cls =
+          latestClasses.find(
+            function(item) {
+
+              return item.classId === classId;
+
+            }
+          );
+
+
+        if (!cls) {
+          return;
+        }
+
+
+        if (cls.bookedByMe) {
+
+          html +=
+            '<div class="result-success">' +
+            "✅ " +
+            cls.date +
+            "（" +
+            cls.weekday +
+            "） " +
+            cls.time +
+            "　預約成功" +
+            "</div>";
+
+        }
+        else {
+
+          html +=
+            '<div class="result-failed">' +
+            "❌ " +
+            cls.date +
+            "（" +
+            cls.weekday +
+            "） " +
+            cls.time +
+            "　未預約" +
+            "</div>";
+
+        }
+
+      }
+    );
+
+  }
+  else {
+
+    html +=
+      '<div class="result-success">' +
+      "✅ 預約處理完成" +
+      "</div>";
+
+  }
+
+
+  result.innerHTML =
+    html;
+
+}
+
+
+// =========================================================
+// 錯誤
+// =========================================================
+
+function showResultError(message) {
+
+  const result =
+    document.getElementById(
+      "result"
+    );
+
+
+  result.style.display =
+    "block";
+
+
+  result.className =
+    "result";
+
+
+  result.innerHTML =
+    '<div class="result-title">預約失敗</div>' +
+    '<div class="result-failed">❌ ' +
+    escapeHtml(message) +
+    "</div>";
+
+
+  setStatus(
+    "❌ 預約處理失敗"
+  );
+
+}
+
+
+// =========================================================
+// HTML escape
+// =========================================================
+
+function escapeHtml(text) {
+
+  return String(text)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+
+}
+
+
+// =========================================================
+// 重新取得課程
+// =========================================================
+
+function loadClasses() {
+
+  setStatus(
+    "正在更新課程資料..."
+  );
+
+
+  const oldScript =
+    document.getElementById(
+      "gas-booking-script"
+    );
+
+
+  if (oldScript) {
+    oldScript.remove();
+  }
+
+
+  const script =
+    document.createElement(
+      "script"
+    );
+
+
+  script.id =
+    "gas-booking-script";
+
+
+  script.src =
+    GAS_URL +
+    "?callback=gasBookingCallback" +
+    "&idToken=" +
+    encodeURIComponent(
+      idToken
+    ) +
+    "&_=" +
+    Date.now();
+
+
+  script.onerror =
+    function() {
+
+      setStatus(
+        "❌ 無法重新取得課程資料"
+      );
+
+    };
+
+
+  document.body.appendChild(
+    script
+  );
+
+}
+
+
+// =========================================================
+// LIFF 初始化
+// =========================================================
+
+async function init() {
+
+  try {
+
+    setStatus(
+      "① 初始化 LIFF..."
+    );
+
+
+    await liff.init({
+
+      liffId: LIFF_ID,
+
+      withLoginOnExternalBrowser: true
+
+    });
+
+
+    setStatus(
+      "② LIFF 初始化成功"
+    );
+
+
+    if (!liff.isLoggedIn()) {
+
+      setStatus(
+        "③ 尚未登入 LINE\n\n" +
+        "準備登入..."
+      );
+
+
+      liff.login();
+
+      return;
+    }
+
+
+    setStatus(
+      "③ LINE 登入成功"
+    );
+
+
+    idToken =
+      liff.getIDToken();
+
+
+    if (!idToken) {
+
+      throw new Error(
+        "拿不到 LINE ID Token"
+      );
+
+    }
+
+
+    console.log(
+      "LINE ID Token 已取得"
+    );
+
+
+    loadClasses();
+
+  }
+  catch (error) {
+
+    console.error(error);
+
+
+    setStatus(
+      "❌ 發生錯誤\n\n" +
+      error.message
+    );
+
+  }
+
+}
+
+
+// =========================================================
+// 開始
+// =========================================================
+
+init();
+
+</script>
+
+
+</body>
+
+</html>
