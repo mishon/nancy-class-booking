@@ -32,7 +32,8 @@
       background: white;
       border-radius: 16px;
       padding: 24px;
-      box-shadow: 0 2px 10px rgba(0,0,0,0.08);
+      box-shadow:
+        0 2px 10px rgba(0,0,0,0.08);
     }
 
     h1 {
@@ -42,6 +43,13 @@
     #status {
       white-space: pre-wrap;
       line-height: 1.6;
+    }
+
+    #debug {
+      margin-top: 20px;
+      font-size: 12px;
+      color: #666;
+      white-space: pre-wrap;
     }
 
   </style>
@@ -57,6 +65,8 @@
   <div id="status">
     初始化中...
   </div>
+
+  <div id="debug"></div>
 
 </div>
 
@@ -74,10 +84,21 @@ const GAS_URL =
 let gasFrame = null;
 
 
+function showDebug(message) {
+
+  console.log(message);
+
+  document.getElementById("debug").textContent +=
+    message + "\n";
+
+}
+
+
 async function init() {
 
   const status =
     document.getElementById("status");
+
 
   try {
 
@@ -95,6 +116,11 @@ async function init() {
       "② LIFF 初始化成功";
 
 
+    showDebug(
+      "LIFF 初始化成功"
+    );
+
+
     if (!liff.isLoggedIn()) {
 
       status.textContent =
@@ -110,6 +136,11 @@ async function init() {
       "③ LINE 登入成功";
 
 
+    showDebug(
+      "LINE 登入成功"
+    );
+
+
     const idToken =
       liff.getIDToken();
 
@@ -117,7 +148,7 @@ async function init() {
     if (!idToken) {
 
       throw new Error(
-        "拿不到 LIFF ID Token"
+        "拿不到 LINE ID Token"
       );
 
     }
@@ -125,38 +156,118 @@ async function init() {
 
     status.textContent =
       "④ 已取得 ID Token\n" +
-      "⑤ 取得課程資料中...";
+      "⑤ 連線 GAS 中...";
+
+
+    showDebug(
+      "開始建立 GAS iframe"
+    );
 
 
     gasFrame =
       document.createElement("iframe");
 
-    gasFrame.src = GAS_URL;
 
-    gasFrame.style.display = "none";
-
-    document.body.appendChild(gasFrame);
+    gasFrame.src =
+      GAS_URL;
 
 
-    gasFrame.onload = function() {
+    gasFrame.style.position =
+      "absolute";
 
-      gasFrame.contentWindow.postMessage(
-        {
-          type: "GET_BOOKING_DATA",
-          idToken: idToken
-        },
-        "*"
-      );
+    gasFrame.style.width =
+      "1px";
 
-    };
+    gasFrame.style.height =
+      "1px";
+
+    gasFrame.style.border =
+      "0";
+
+    gasFrame.style.visibility =
+      "hidden";
+
+
+    document.body.appendChild(
+      gasFrame
+    );
+
+
+    gasFrame.onload =
+      function() {
+
+        showDebug(
+          "GAS iframe 載入完成"
+        );
+
+
+        status.textContent =
+          "⑤ GAS 已載入，取得課程資料中...";
+
+
+        gasFrame.contentWindow.postMessage(
+          {
+            type:
+              "GET_BOOKING_DATA",
+
+            idToken:
+              idToken
+          },
+          "*"
+        );
+
+
+        showDebug(
+          "已送出 GET_BOOKING_DATA"
+        );
+
+      };
+
+
+    // 10 秒沒有回應就顯示錯誤
+    setTimeout(
+      function() {
+
+        const current =
+          document.getElementById(
+            "status"
+          ).textContent;
+
+
+        if (
+          current.includes(
+            "取得課程資料中"
+          )
+        ) {
+
+          status.textContent =
+            "❌ GAS 超過 10 秒沒有回應";
+
+          showDebug(
+            "timeout：GAS 沒有回傳資料"
+          );
+
+        }
+
+      },
+      10000
+    );
+
 
   } catch (error) {
 
     console.error(error);
 
+
     status.textContent =
       "❌ 發生錯誤：\n" +
       error.message;
+
+
+    showDebug(
+      "ERROR: " +
+      error.message
+    );
 
   }
 
@@ -167,20 +278,25 @@ window.addEventListener(
   "message",
   function(event) {
 
-    const data = event.data;
+    console.log(
+      "GitHub 收到 message:",
+      event.data
+    );
+
+
+    const data =
+      event.data;
+
 
     if (!data) {
       return;
     }
 
 
-    if (data.type === "BOOKING_DATA") {
-
-      console.log(
-        "課程資料：",
-        data.data
-      );
-
+    if (
+      data.type ===
+      "BOOKING_DATA"
+    ) {
 
       const result =
         data.data;
@@ -198,8 +314,15 @@ window.addEventListener(
         " 堂";
 
 
+      document.getElementById(
+        "debug"
+      ).textContent =
+        "GAS 回傳成功";
+
+
       document.body.insertAdjacentHTML(
         "beforeend",
+
         "<pre>" +
         JSON.stringify(
           result,
@@ -212,7 +335,10 @@ window.addEventListener(
     }
 
 
-    if (data.type === "BOOKING_ERROR") {
+    if (
+      data.type ===
+      "BOOKING_ERROR"
+    ) {
 
       document.getElementById(
         "status"
