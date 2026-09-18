@@ -12,6 +12,10 @@
 
   <title>課程預約</title>
 
+  <!-- =====================================================
+       LINE LIFF SDK
+       ===================================================== -->
+
   <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
 
 
@@ -46,8 +50,14 @@
       max-width: 600px;
 
       margin: 20px auto;
+
+      padding-bottom: 130px;
     }
 
+
+    /* =====================================================
+       Header
+       ===================================================== */
 
     .header {
 
@@ -69,6 +79,8 @@
       margin: 0 0 8px 0;
 
       font-size: 30px;
+
+      line-height: 1.3;
     }
 
 
@@ -76,28 +88,91 @@
 
       color: #666;
 
-      font-size: 16px;
+      font-size: 17px;
     }
 
+
+    /* =====================================================
+       Status
+       ===================================================== */
 
     .status {
 
       background: white;
 
-      padding: 16px;
+      padding: 18px;
 
-      border-radius: 14px;
+      border-radius: 16px;
 
       margin-bottom: 16px;
 
-      line-height: 1.6;
+      line-height: 1.7;
+
+      font-size: 17px;
 
       white-space: pre-wrap;
     }
 
 
     /* =====================================================
-       課程卡片
+       Result
+       ===================================================== */
+
+    .result {
+
+      background: white;
+
+      border-radius: 16px;
+
+      padding: 20px;
+
+      margin-bottom: 16px;
+
+      box-shadow:
+        0 2px 8px rgba(0, 0, 0, 0.06);
+    }
+
+
+    .result-title {
+
+      font-size: 23px;
+
+      font-weight: 700;
+
+      margin-bottom: 14px;
+    }
+
+
+    .result-success {
+
+      color: #16803c;
+
+      font-size: 18px;
+
+      font-weight: 600;
+
+      line-height: 1.7;
+
+      margin-bottom: 8px;
+    }
+
+
+    .result-failed {
+
+      color: #d93025;
+
+      font-size: 18px;
+
+      font-weight: 600;
+
+      line-height: 1.7;
+
+      margin-bottom: 8px;
+    }
+
+
+    /* =====================================================
+       Class Card
        ===================================================== */
 
     .class-card {
@@ -106,11 +181,11 @@
 
       background: white;
 
-      border-radius: 16px;
+      border-radius: 18px;
 
-      padding: 18px;
+      padding: 20px;
 
-      margin-bottom: 12px;
+      margin-bottom: 14px;
 
       box-shadow:
         0 2px 8px rgba(0, 0, 0, 0.06);
@@ -152,15 +227,15 @@
 
       position: absolute;
 
-      top: 18px;
+      top: 20px;
 
-      right: 18px;
+      right: 20px;
 
-      width: 26px;
+      width: 28px;
 
-      height: 26px;
+      height: 28px;
 
-      border: 2px solid #aaa;
+      border: 3px solid #aaa;
 
       border-radius: 50%;
 
@@ -170,9 +245,9 @@
 
       justify-content: center;
 
-      font-size: 16px;
+      font-size: 17px;
 
-      font-weight: bold;
+      font-weight: 700;
     }
 
 
@@ -193,54 +268,60 @@
 
 
     /* =====================================================
-       日期
+       Date
        ===================================================== */
 
     .class-date {
 
-      font-size: 21px;
+      font-size: 23px;
 
       font-weight: 700;
 
       margin-bottom: 6px;
 
-      padding-right: 40px;
+      padding-right: 48px;
     }
 
+
+    /* =====================================================
+       Time
+       ===================================================== */
 
     .class-time {
 
-      font-size: 17px;
+      font-size: 18px;
 
       color: #555;
 
-      margin-bottom: 10px;
+      margin-bottom: 12px;
     }
 
 
+    /* =====================================================
+       Count
+       ===================================================== */
+
     .class-count {
 
-      font-size: 16px;
+      font-size: 17px;
 
       margin-bottom: 8px;
     }
 
 
-    .class-names {
-
-      font-size: 14px;
-
-      color: #666;
-
-      line-height: 1.6;
-    }
-
+    /* =====================================================
+       Status text
+       ===================================================== */
 
     .available {
 
       color: #16803c;
 
-      font-weight: 600;
+      font-size: 17px;
+
+      font-weight: 700;
+
+      margin-bottom: 6px;
     }
 
 
@@ -248,7 +329,11 @@
 
       color: #d93025;
 
-      font-weight: 600;
+      font-size: 17px;
+
+      font-weight: 700;
+
+      margin-bottom: 6px;
     }
 
 
@@ -256,30 +341,58 @@
 
       color: #1a73e8;
 
-      font-weight: 600;
+      font-size: 17px;
+
+      font-weight: 700;
+
+      margin-bottom: 6px;
     }
 
 
     /* =====================================================
-       底部預約區
+       Names
+       ===================================================== */
+
+    .class-names {
+
+      color: #666;
+
+      font-size: 15px;
+
+      line-height: 1.6;
+    }
+
+
+    /* =====================================================
+       Bottom booking bar
        ===================================================== */
 
     .booking-bar {
 
-      position: sticky;
+      position: fixed;
 
-      bottom: 12px;
+      left: 0;
+
+      right: 0;
+
+      bottom: 0;
+
+      z-index: 100;
 
       background: white;
 
-      padding: 16px;
-
-      border-radius: 16px;
-
-      margin-top: 20px;
+      padding: 16px 20px 20px;
 
       box-shadow:
-        0 3px 16px rgba(0, 0, 0, 0.15);
+        0 -3px 16px rgba(0, 0, 0, 0.12);
+    }
+
+
+    .booking-bar-inner {
+
+      max-width: 600px;
+
+      margin: 0 auto;
     }
 
 
@@ -291,7 +404,9 @@
 
       color: #555;
 
-      font-size: 15px;
+      font-size: 17px;
+
+      font-weight: 600;
     }
 
 
@@ -301,11 +416,11 @@
 
       border: none;
 
-      border-radius: 12px;
+      border-radius: 14px;
 
-      padding: 15px;
+      padding: 16px;
 
-      font-size: 18px;
+      font-size: 20px;
 
       font-weight: 700;
 
@@ -326,56 +441,18 @@
 
 
     /* =====================================================
-       預約結果
+       Loading
        ===================================================== */
-
-    .result {
-
-      background: white;
-
-      border-radius: 16px;
-
-      padding: 20px;
-
-      margin-bottom: 16px;
-
-      line-height: 1.7;
-    }
-
-
-    .result-title {
-
-      font-size: 21px;
-
-      font-weight: 700;
-
-      margin-bottom: 12px;
-    }
-
-
-    .result-success {
-
-      color: #16803c;
-
-      margin-bottom: 6px;
-    }
-
-
-    .result-failed {
-
-      color: #d93025;
-
-      margin-bottom: 6px;
-    }
-
 
     .loading {
 
       text-align: center;
 
-      padding: 20px;
+      padding: 30px 20px;
 
       color: #666;
+
+      font-size: 17px;
     }
 
   </style>
@@ -408,7 +485,7 @@
 
 
   <!-- =====================================================
-       狀態
+       Status
        ===================================================== -->
 
   <div
@@ -425,6 +502,7 @@
 
   <div
     id="result"
+    class="result"
     style="display:none;"
   ></div>
 
@@ -433,18 +511,29 @@
        課程列表
        ===================================================== -->
 
-  <div id="classes"></div>
+  <div id="classes">
+
+    <div class="loading">
+      課程資料載入中...
+    </div>
+
+  </div>
 
 
-  <!-- =====================================================
-       預約按鈕
-       ===================================================== -->
+</div>
 
-  <div
-    id="bookingBar"
-    class="booking-bar"
-    style="display:none;"
-  >
+
+<!-- =======================================================
+     Bottom Booking Bar
+     ======================================================= -->
+
+<div
+  id="bookingBar"
+  class="booking-bar"
+  style="display:none;"
+>
+
+  <div class="booking-bar-inner">
 
     <div
       id="selectedInfo"
@@ -458,13 +547,11 @@
       id="bookingButton"
       class="booking-button"
       disabled
-      onclick="submitBookings()"
     >
       確定預約
     </button>
 
   </div>
-
 
 </div>
 
@@ -485,7 +572,7 @@ const GAS_URL =
 
 
 // =========================================================
-// 全域資料
+// 全域變數
 // =========================================================
 
 let idToken = "";
@@ -498,7 +585,7 @@ let isSubmitting = false;
 
 
 // =========================================================
-// UI
+// Status
 // =========================================================
 
 function setStatus(message) {
@@ -511,7 +598,39 @@ function setStatus(message) {
 
 
 // =========================================================
-// GAS 取得課程資料 Callback
+// HTML Escape
+// =========================================================
+
+function escapeHtml(text) {
+
+  return String(text)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+
+}
+
+
+// =========================================================
+// 顯示錯誤
+// =========================================================
+
+function showError(message) {
+
+  console.error(message);
+
+  setStatus(
+    "❌ 發生錯誤\n\n" +
+    message
+  );
+
+}
+
+
+// =========================================================
+// GAS：取得課程資料
 // =========================================================
 
 window.gasBookingCallback =
@@ -525,8 +644,8 @@ window.gasBookingCallback =
 
     if (!response) {
 
-      setStatus(
-        "❌ GAS 回傳空資料"
+      showError(
+        "GAS 回傳空資料"
       );
 
       return;
@@ -535,9 +654,9 @@ window.gasBookingCallback =
 
     if (!response.success) {
 
-      setStatus(
-        "❌ GAS 取得課程失敗\n\n" +
-        response.message
+      showError(
+        response.message ||
+        "取得課程資料失敗"
       );
 
       return;
@@ -550,13 +669,17 @@ window.gasBookingCallback =
 
     if (!data) {
 
-      setStatus(
-        "❌ GAS 沒有回傳課程資料"
+      showError(
+        "GAS 沒有回傳課程資料"
       );
 
       return;
     }
 
+
+    // -----------------------------------------------------
+    // 使用者名稱
+    // -----------------------------------------------------
 
     document.getElementById(
       "userName"
@@ -565,8 +688,28 @@ window.gasBookingCallback =
       (data.userName || "會員");
 
 
+    // -----------------------------------------------------
+    // 課程資料
+    // -----------------------------------------------------
+
     classes =
-      data.classes || [];
+      Array.isArray(data.classes)
+        ? data.classes
+        : [];
+
+
+    // -----------------------------------------------------
+    // 清除選擇
+    // -----------------------------------------------------
+
+    selectedClassIds = [];
+
+
+    // -----------------------------------------------------
+    // 顯示課程
+    // -----------------------------------------------------
+
+    renderClasses();
 
 
     setStatus(
@@ -574,90 +717,73 @@ window.gasBookingCallback =
       "請選擇要預約的日期"
     );
 
-
-    renderClasses();
-
   };
 
 
 // =========================================================
-// GAS 批次預約 Callback
+// 載入課程
 // =========================================================
 
-window.gasSubmitCallback =
-  function(response) {
+function loadClasses() {
 
-    console.log(
-      "GAS Submit Response:",
-      response
+  setStatus(
+    "正在取得課程資料..."
+  );
+
+
+  const oldScript =
+    document.getElementById(
+      "gas-booking-script"
     );
 
 
-    isSubmitting = false;
+  if (oldScript) {
+
+    oldScript.remove();
+
+  }
 
 
-    const button =
-      document.getElementById(
-        "bookingButton"
-      );
-
-
-    button.disabled = false;
-
-    button.textContent =
-      "確定預約";
-
-
-    if (!response) {
-
-      showResultError(
-        "GAS 回傳空資料"
-      );
-
-      return;
-    }
-
-
-    if (!response.success) {
-
-      showResultError(
-        response.message ||
-        "預約失敗"
-      );
-
-      return;
-    }
-
-
-    // =====================================================
-    // 顯示預約結果
-    // =====================================================
-
-    showBookingResult(
-      response.data
+  const script =
+    document.createElement(
+      "script"
     );
 
 
-    // =====================================================
-    // 預約完成後重新取得全部課程
-    // =====================================================
+  script.id =
+    "gas-booking-script";
 
-    selectedClassIds = [];
 
-    setTimeout(
-      function() {
+  script.src =
+    GAS_URL +
+    "?callback=gasBookingCallback" +
+    "&idToken=" +
+    encodeURIComponent(
+      idToken
+    ) +
+    "&_=" +
+    Date.now();
 
-        loadClasses();
 
-      },
-      800
-    );
+  script.onerror =
+    function() {
 
-  };
+      showError(
+        "無法載入課程資料"
+      );
+
+    };
+
+
+  document.body.appendChild(
+    script
+  );
+
+}
 
 
 // =========================================================
-// 顯示課程
+// Render Classes
 // =========================================================
 
 function renderClasses() {
@@ -674,7 +800,11 @@ function renderClasses() {
   if (!classes.length) {
 
     container.innerHTML =
-      '<div class="class-card">目前沒有課程</div>';
+      '<div class="class-card">' +
+      "目前沒有課程" +
+      "</div>";
+
+    updateBookingBar();
 
     return;
   }
@@ -694,18 +824,25 @@ function renderClasses() {
 
 
       const isFull =
-        cls.count >= cls.maxPeople;
+        Number(cls.count) >=
+        Number(cls.maxPeople);
 
 
       const isBooked =
-        cls.bookedByMe;
+        !!cls.bookedByMe;
 
 
-      const isDisabled =
-        isFull || isBooked;
+      const isSelected =
+        selectedClassIds.includes(
+          cls.classId
+        );
 
 
-      if (isDisabled) {
+      // ---------------------------------------------------
+      // Disabled
+      // ---------------------------------------------------
+
+      if (isFull || isBooked) {
 
         card.classList.add(
           "disabled"
@@ -714,11 +851,11 @@ function renderClasses() {
       }
 
 
-      if (
-        selectedClassIds.includes(
-          cls.classId
-        )
-      ) {
+      // ---------------------------------------------------
+      // Selected
+      // ---------------------------------------------------
+
+      if (isSelected) {
 
         card.classList.add(
           "selected"
@@ -727,9 +864,9 @@ function renderClasses() {
       }
 
 
-      // -----------------------------------------------------
+      // ---------------------------------------------------
       // Checkbox
-      // -----------------------------------------------------
+      // ---------------------------------------------------
 
       const checkbox =
         document.createElement(
@@ -741,11 +878,7 @@ function renderClasses() {
         "checkbox";
 
 
-      if (
-        selectedClassIds.includes(
-          cls.classId
-        )
-      ) {
+      if (isSelected) {
 
         checkbox.textContent =
           "✓";
@@ -758,9 +891,9 @@ function renderClasses() {
       );
 
 
-      // -----------------------------------------------------
+      // ---------------------------------------------------
       // 日期
-      // -----------------------------------------------------
+      // ---------------------------------------------------
 
       const date =
         document.createElement(
@@ -779,9 +912,9 @@ function renderClasses() {
         "）";
 
 
-      // -----------------------------------------------------
+      // ---------------------------------------------------
       // 時間
-      // -----------------------------------------------------
+      // ---------------------------------------------------
 
       const time =
         document.createElement(
@@ -797,9 +930,9 @@ function renderClasses() {
         cls.time;
 
 
-      // -----------------------------------------------------
+      // ---------------------------------------------------
       // 人數
-      // -----------------------------------------------------
+      // ---------------------------------------------------
 
       const count =
         document.createElement(
@@ -819,9 +952,9 @@ function renderClasses() {
         " 人";
 
 
-      // -----------------------------------------------------
+      // ---------------------------------------------------
       // 狀態
-      // -----------------------------------------------------
+      // ---------------------------------------------------
 
       const status =
         document.createElement(
@@ -858,9 +991,9 @@ function renderClasses() {
       }
 
 
-      // -----------------------------------------------------
-      // 名單
-      // -----------------------------------------------------
+      // ---------------------------------------------------
+      // 已預約名單
+      // ---------------------------------------------------
 
       const names =
         document.createElement(
@@ -873,8 +1006,8 @@ function renderClasses() {
 
 
       if (
-        cls.names &&
-        cls.names.length
+        Array.isArray(cls.names) &&
+        cls.names.length > 0
       ) {
 
         names.textContent =
@@ -889,6 +1022,10 @@ function renderClasses() {
 
       }
 
+
+      // ---------------------------------------------------
+      // 加入卡片
+      // ---------------------------------------------------
 
       card.appendChild(
         date
@@ -911,11 +1048,11 @@ function renderClasses() {
       );
 
 
-      // -----------------------------------------------------
+      // ---------------------------------------------------
       // 點擊
-      // -----------------------------------------------------
+      // ---------------------------------------------------
 
-      if (!isDisabled) {
+      if (!isFull && !isBooked) {
 
         card.addEventListener(
           "click",
@@ -950,6 +1087,11 @@ function renderClasses() {
 
 function toggleClass(classId) {
 
+  if (isSubmitting) {
+    return;
+  }
+
+
   const index =
     selectedClassIds.indexOf(
       classId
@@ -979,7 +1121,7 @@ function toggleClass(classId) {
 
 
 // =========================================================
-// 更新預約按鈕
+// 更新底部預約按鈕
 // =========================================================
 
 function updateBookingBar() {
@@ -1031,9 +1173,401 @@ function updateBookingBar() {
 
 
   button.disabled =
-    false;
+    isSubmitting;
 
 }
+
+
+// =========================================================
+// 顯示預約結果
+// =========================================================
+
+function showBookingResult(
+  data,
+  submittedClassIds
+) {
+
+  const result =
+    document.getElementById(
+      "result"
+    );
+
+
+  result.style.display =
+    "block";
+
+
+  let html =
+    '<div class="result-title">預約結果</div>';
+
+
+  // =====================================================
+  // 如果 GAS 有回傳 results
+  // 優先使用 results
+  // =====================================================
+
+  if (
+    data &&
+    Array.isArray(data.results) &&
+    data.results.length > 0
+  ) {
+
+    data.results.forEach(
+      function(item) {
+
+        const success =
+          item.success === true ||
+          item.status === "BOOKED" ||
+          item.status === "SUCCESS";
+
+
+        const date =
+          item.date ||
+          item.classDate ||
+          item.courseDate ||
+          "";
+
+
+        const weekday =
+          item.weekday ||
+          "";
+
+
+        const time =
+          item.time ||
+          "";
+
+
+        const message =
+          item.message ||
+          "";
+
+
+        if (success) {
+
+          html +=
+            '<div class="result-success">' +
+            "✅ " +
+            escapeHtml(date) +
+            (
+              weekday
+                ? "（" +
+                  escapeHtml(weekday) +
+                  "）"
+                : ""
+            ) +
+            (
+              time
+                ? " " +
+                  escapeHtml(time)
+                : ""
+            ) +
+            "　預約成功" +
+            "</div>";
+
+        }
+        else {
+
+          html +=
+            '<div class="result-failed">' +
+            "❌ " +
+            escapeHtml(date) +
+            (
+              weekday
+                ? "（" +
+                  escapeHtml(weekday) +
+                  "）"
+                : ""
+            ) +
+            (
+              time
+                ? " " +
+                  escapeHtml(time)
+                : ""
+            ) +
+            "　" +
+            escapeHtml(
+              message ||
+              "預約失敗"
+            ) +
+            "</div>";
+
+        }
+
+      }
+    );
+
+  }
+  else if (
+    data &&
+    Array.isArray(data.classes)
+  ) {
+
+    // ===================================================
+    // 如果沒有 results
+    // 就用最新 classes 判斷
+    // ===================================================
+
+    submittedClassIds.forEach(
+      function(classId) {
+
+        const cls =
+          data.classes.find(
+            function(item) {
+
+              return String(
+                item.classId
+              ) === String(
+                classId
+              );
+
+            }
+          );
+
+
+        if (!cls) {
+
+          return;
+
+        }
+
+
+        if (cls.bookedByMe) {
+
+          html +=
+            '<div class="result-success">' +
+            "✅ " +
+            escapeHtml(
+              cls.date
+            ) +
+            "（" +
+            escapeHtml(
+              cls.weekday
+            ) +
+            "） " +
+            escapeHtml(
+              cls.time
+            ) +
+            "　預約成功" +
+            "</div>";
+
+        }
+        else {
+
+          html +=
+            '<div class="result-failed">' +
+            "❌ " +
+            escapeHtml(
+              cls.date
+            ) +
+            "（" +
+            escapeHtml(
+              cls.weekday
+            ) +
+            "） " +
+            escapeHtml(
+              cls.time
+            ) +
+            "　未預約" +
+            "</div>";
+
+        }
+
+      }
+    );
+
+  }
+  else {
+
+    html +=
+      '<div class="result-success">' +
+      "✅ 預約處理完成" +
+      "</div>";
+
+  }
+
+
+  result.innerHTML =
+    html;
+
+}
+
+
+// =========================================================
+// 顯示預約錯誤
+// =========================================================
+
+function showResultError(
+  message
+) {
+
+  const result =
+    document.getElementById(
+      "result"
+    );
+
+
+  result.style.display =
+    "block";
+
+
+  result.innerHTML =
+    '<div class="result-title">' +
+    "預約失敗" +
+    "</div>" +
+
+    '<div class="result-failed">' +
+    "❌ " +
+    escapeHtml(
+      message
+    ) +
+    "</div>";
+
+
+  setStatus(
+    "❌ 預約處理失敗"
+  );
+
+}
+
+
+// =========================================================
+// GAS：批次預約
+// =========================================================
+
+window.gasSubmitCallback =
+  function(response) {
+
+    console.log(
+      "GAS Submit Response:",
+      response
+    );
+
+
+    isSubmitting = false;
+
+
+    const button =
+      document.getElementById(
+        "bookingButton"
+      );
+
+
+    button.disabled =
+      false;
+
+
+    button.textContent =
+      "確定預約";
+
+
+    // ===================================================
+    // GAS 沒有回傳
+    // ===================================================
+
+    if (!response) {
+
+      showResultError(
+        "GAS 回傳空資料"
+      );
+
+      return;
+
+    }
+
+
+    // ===================================================
+    // GAS 回傳失敗
+    // ===================================================
+
+    if (!response.success) {
+
+      showResultError(
+        response.message ||
+        "預約失敗"
+      );
+
+      return;
+
+    }
+
+
+    // ===================================================
+    // 很重要：
+    //
+    // 先複製這次選擇的日期
+    //
+    // 因為後面會清空 selectedClassIds
+    // ===================================================
+
+    const submittedClassIds =
+      selectedClassIds.slice();
+
+
+    // ===================================================
+    // GAS 回傳資料
+    // ===================================================
+
+    const data =
+      response.data;
+
+
+    // ===================================================
+    // 顯示預約結果
+    // ===================================================
+
+    showBookingResult(
+      data,
+      submittedClassIds
+    );
+
+
+    // ===================================================
+    // 直接使用 GAS 回傳的最新課程
+    //
+    // ★ 不再呼叫 loadClasses()
+    // ===================================================
+
+    if (
+      data &&
+      Array.isArray(data.classes)
+    ) {
+
+      classes =
+        data.classes;
+
+
+      // 清除勾選
+
+      selectedClassIds = [];
+
+
+      // 重新畫面
+
+      renderClasses();
+
+
+      setStatus(
+        "⑥ 預約完成\n\n" +
+        "課程資料已更新"
+      );
+
+    }
+    else {
+
+      selectedClassIds = [];
+
+
+      renderClasses();
+
+
+      setStatus(
+        "⑥ 預約完成"
+      );
+
+    }
+
+  };
 
 
 // =========================================================
@@ -1043,7 +1577,9 @@ function updateBookingBar() {
 function submitBookings() {
 
   if (isSubmitting) {
+
     return;
+
   }
 
 
@@ -1056,24 +1592,37 @@ function submitBookings() {
     );
 
     return;
+
   }
 
 
-  // =======================================================
-  // 再確認一次
-  // =======================================================
+  // =====================================================
+  // 保留本次選擇
+  // =====================================================
+
+  const submittedClassIds =
+    selectedClassIds.slice();
+
+
+  // =====================================================
+  // 找出選擇的課程
+  // =====================================================
 
   const selectedClasses =
     classes.filter(
       function(cls) {
 
-        return selectedClassIds.includes(
+        return submittedClassIds.includes(
           cls.classId
         );
 
       }
     );
 
+
+  // =====================================================
+  // 確認文字
+  // =====================================================
 
   const dateText =
     selectedClasses
@@ -1084,7 +1633,8 @@ function submitBookings() {
             cls.date +
             "（" +
             cls.weekday +
-            "）"
+            "） " +
+            cls.time
           );
 
         }
@@ -1100,9 +1650,15 @@ function submitBookings() {
 
 
   if (!confirmed) {
+
     return;
+
   }
 
+
+  // =====================================================
+  // 開始送出
+  // =====================================================
 
   isSubmitting = true;
 
@@ -1126,9 +1682,9 @@ function submitBookings() {
   );
 
 
-  // =======================================================
-  // 建立 JSONP
-  // =======================================================
+  // =====================================================
+  // 移除舊 script
+  // =====================================================
 
   const oldScript =
     document.getElementById(
@@ -1137,9 +1693,15 @@ function submitBookings() {
 
 
   if (oldScript) {
+
     oldScript.remove();
+
   }
 
+
+  // =====================================================
+  // 建立 JSONP script
+  // =====================================================
 
   const script =
     document.createElement(
@@ -1153,7 +1715,7 @@ function submitBookings() {
 
   const classIdsJson =
     JSON.stringify(
-      selectedClassIds
+      submittedClassIds
     );
 
 
@@ -1202,235 +1764,16 @@ function submitBookings() {
 
 
 // =========================================================
-// 顯示預約結果
-// =========================================================
-
-function showBookingResult(data) {
-
-  const result =
-    document.getElementById(
-      "result"
-    );
-
-
-  result.style.display =
-    "block";
-
-
-  result.className =
-    "result";
-
-
-  let html =
-    '<div class="result-title">預約結果</div>';
-
-
-  /*
-   * submitSelectedBookings()
-   * 如果回傳的是：
-   *
-   * {
-   *   userName: "...",
-   *   classes: [...]
-   * }
-   *
-   * 我們可以從重新整理後的資料判斷結果。
-   */
-
-
-  if (
-    data &&
-    data.classes
-  ) {
-
-    const latestClasses =
-      data.classes;
-
-
-    selectedClassIds.forEach(
-      function(classId) {
-
-        const cls =
-          latestClasses.find(
-            function(item) {
-
-              return item.classId === classId;
-
-            }
-          );
-
-
-        if (!cls) {
-          return;
-        }
-
-
-        if (cls.bookedByMe) {
-
-          html +=
-            '<div class="result-success">' +
-            "✅ " +
-            cls.date +
-            "（" +
-            cls.weekday +
-            "） " +
-            cls.time +
-            "　預約成功" +
-            "</div>";
-
-        }
-        else {
-
-          html +=
-            '<div class="result-failed">' +
-            "❌ " +
-            cls.date +
-            "（" +
-            cls.weekday +
-            "） " +
-            cls.time +
-            "　未預約" +
-            "</div>";
-
-        }
-
-      }
-    );
-
-  }
-  else {
-
-    html +=
-      '<div class="result-success">' +
-      "✅ 預約處理完成" +
-      "</div>";
-
-  }
-
-
-  result.innerHTML =
-    html;
-
-}
-
-
-// =========================================================
-// 錯誤
-// =========================================================
-
-function showResultError(message) {
-
-  const result =
-    document.getElementById(
-      "result"
-    );
-
-
-  result.style.display =
-    "block";
-
-
-  result.className =
-    "result";
-
-
-  result.innerHTML =
-    '<div class="result-title">預約失敗</div>' +
-    '<div class="result-failed">❌ ' +
-    escapeHtml(message) +
-    "</div>";
-
-
-  setStatus(
-    "❌ 預約處理失敗"
-  );
-
-}
-
-
-// =========================================================
-// HTML escape
-// =========================================================
-
-function escapeHtml(text) {
-
-  return String(text)
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&#039;");
-
-}
-
-
-// =========================================================
-// 重新取得課程
-// =========================================================
-
-function loadClasses() {
-
-  setStatus(
-    "正在更新課程資料..."
-  );
-
-
-  const oldScript =
-    document.getElementById(
-      "gas-booking-script"
-    );
-
-
-  if (oldScript) {
-    oldScript.remove();
-  }
-
-
-  const script =
-    document.createElement(
-      "script"
-    );
-
-
-  script.id =
-    "gas-booking-script";
-
-
-  script.src =
-    GAS_URL +
-    "?callback=gasBookingCallback" +
-    "&idToken=" +
-    encodeURIComponent(
-      idToken
-    ) +
-    "&_=" +
-    Date.now();
-
-
-  script.onerror =
-    function() {
-
-      setStatus(
-        "❌ 無法重新取得課程資料"
-      );
-
-    };
-
-
-  document.body.appendChild(
-    script
-  );
-
-}
-
-
-// =========================================================
 // LIFF 初始化
 // =========================================================
 
 async function init() {
 
   try {
+
+    // -----------------------------------------------------
+    // ① 初始化
+    // -----------------------------------------------------
 
     setStatus(
       "① 初始化 LIFF..."
@@ -1446,10 +1789,18 @@ async function init() {
     });
 
 
+    // -----------------------------------------------------
+    // ② 初始化成功
+    // -----------------------------------------------------
+
     setStatus(
       "② LIFF 初始化成功"
     );
 
+
+    // -----------------------------------------------------
+    // ③ LINE 登入
+    // -----------------------------------------------------
 
     if (!liff.isLoggedIn()) {
 
@@ -1462,6 +1813,7 @@ async function init() {
       liff.login();
 
       return;
+
     }
 
 
@@ -1469,6 +1821,10 @@ async function init() {
       "③ LINE 登入成功"
     );
 
+
+    // -----------------------------------------------------
+    // ④ ID Token
+    // -----------------------------------------------------
 
     idToken =
       liff.getIDToken();
@@ -1488,17 +1844,23 @@ async function init() {
     );
 
 
+    // -----------------------------------------------------
+    // ⑤ 取得課程
+    // -----------------------------------------------------
+
     loadClasses();
 
   }
   catch (error) {
 
-    console.error(error);
+    console.error(
+      error
+    );
 
 
-    setStatus(
-      "❌ 發生錯誤\n\n" +
-      error.message
+    showError(
+      error.message ||
+      String(error)
     );
 
   }
@@ -1507,7 +1869,21 @@ async function init() {
 
 
 // =========================================================
-// 開始
+// 按鈕事件
+// =========================================================
+
+document
+  .getElementById(
+    "bookingButton"
+  )
+  .addEventListener(
+    "click",
+    submitBookings
+  );
+
+
+// =========================================================
+// 啟動
 // =========================================================
 
 init();
