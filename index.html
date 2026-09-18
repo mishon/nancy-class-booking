@@ -2,7 +2,6 @@
 <html lang="zh-Hant">
 <head>
   <meta charset="UTF-8">
-
   <meta
     name="viewport"
     content="width=device-width, initial-scale=1, maximum-scale=1"
@@ -10,7 +9,6 @@
 
   <title>課程預約</title>
 
-  <!-- LINE LIFF SDK -->
   <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
 
   <style>
@@ -35,15 +33,13 @@
       max-width: 600px;
       margin: 40px auto;
       padding: 28px 24px;
-      background: #fff;
+      background: white;
       border-radius: 18px;
       box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
     }
 
     h1 {
       margin-top: 0;
-      margin-bottom: 24px;
-      font-size: 32px;
     }
 
     #status {
@@ -53,20 +49,11 @@
       word-break: break-word;
     }
 
-    .success {
-      color: #16803c;
-    }
-
-    .error {
-      color: #d93025;
-    }
-
     pre {
       margin-top: 20px;
       padding: 16px;
       background: #f1f3f4;
       border-radius: 10px;
-      overflow-x: auto;
       white-space: pre-wrap;
       word-break: break-word;
       font-size: 14px;
@@ -88,278 +75,181 @@
 
 <script>
 
-  // =========================================================
-  // 基本設定
-  // =========================================================
+const LIFF_ID = "2011656647-Tw5kY4xl";
 
-  const LIFF_ID = "2011656647-Tw5kY4xl";
-
-  const GAS_URL =
-    "https://script.google.com/macros/s/AKfycbzoDeakQtcTqIHCeJoqaTaGIpkkAsWZMk34gXu1G1m1QWWFEgPZfTsIonKSMZxu74Mu2g/exec";
+const GAS_URL =
+  "https://script.google.com/macros/s/AKfycbzoDeakQtcTqIHCeJoqaTaGIpkkAsWZMk34gXu1G1m1QWWFEgPZfTsIonKSMZxu74Mu2g/exec";
 
 
-  // =========================================================
-  // 顯示訊息
-  // =========================================================
-
-  function setStatus(message, className = "") {
-
-    const status = document.getElementById("status");
-
-    status.className = className;
-
-    status.textContent = message;
-  }
+function setStatus(text) {
+  document.getElementById("status").textContent = text;
+}
 
 
-  // =========================================================
-  // 顯示錯誤
-  // =========================================================
+/*
+ * ============================================================
+ * GAS JSONP Callback
+ * ============================================================
+ */
 
-  function showError(error) {
+window.gasTestCallback = function(result) {
 
-    console.error(error);
+  console.log("========== GAS CALLBACK ==========");
+  console.log(result);
 
-    let message = "";
-
-    if (error instanceof Error) {
-      message = error.message;
-    } else {
-      message = String(error);
-    }
+  if (!result) {
 
     setStatus(
-      "❌ 發生錯誤：\n\n" + message,
-      "error"
+      "❌ GAS 回傳空資料"
     );
+
+    return;
   }
 
 
-  // =========================================================
-  // GAS JSONP Callback
-  // =========================================================
-  //
-  // GAS 會回傳：
-  //
-  // gasTestCallback({
-  //   success: true,
-  //   message: "GAS API 正常",
-  //   time: "..."
-  // });
-  //
-  // =========================================================
+  setStatus(
+    "⑥ GAS API 呼叫成功！\n\n" +
+    JSON.stringify(result, null, 2)
+  );
 
-  window.gasTestCallback = function(result) {
+};
 
-    console.log("GAS 回傳結果：", result);
 
-    if (!result) {
+/*
+ * ============================================================
+ * 呼叫 GAS
+ * ============================================================
+ */
 
-      showError(
-        new Error("GAS 回傳空資料")
-      );
+function callGas() {
 
-      return;
-    }
+  setStatus(
+    "④ 已取得 ID Token\n\n" +
+    "⑤ 正在呼叫 GAS..."
+  );
 
-    if (result.success) {
 
-      setStatus(
-        "⑥ GAS API 呼叫成功！",
-        "success"
-      );
+  const script =
+    document.createElement("script");
 
-      const pre = document.createElement("pre");
 
-      pre.textContent =
-        JSON.stringify(result, null, 2);
+  script.src =
+    GAS_URL +
+    "?callback=gasTestCallback&x=" +
+    Date.now();
 
-      document.querySelector(".box").appendChild(pre);
 
-    } else {
+  script.onload = function() {
 
-      showError(
-        new Error(
-          result.message || "GAS API 回傳失敗"
-        )
-      );
-    }
+    console.log(
+      "GAS script 載入完成"
+    );
 
   };
 
 
-  // =========================================================
-  // 呼叫 GAS API
-  // =========================================================
+  script.onerror = function(error) {
 
-  function callGasApi() {
+    console.error(
+      "GAS script 載入失敗",
+      error
+    );
 
     setStatus(
-      "④ 已取得 ID Token\n\n" +
-      "⑤ 呼叫 GAS API..."
+      "❌ GAS script 載入失敗"
+    );
+
+  };
+
+
+  document.body.appendChild(script);
+
+}
+
+
+/*
+ * ============================================================
+ * LIFF 初始化
+ * ============================================================
+ */
+
+async function init() {
+
+  try {
+
+    setStatus(
+      "① 初始化 LIFF..."
     );
 
 
-    // 避免重複建立 script
-    const oldScript =
-      document.getElementById("gas-api-script");
+    await liff.init({
 
-    if (oldScript) {
-      oldScript.remove();
+      liffId: LIFF_ID,
+
+      withLoginOnExternalBrowser: true
+
+    });
+
+
+    setStatus(
+      "② LIFF 初始化成功"
+    );
+
+
+    if (!liff.isLoggedIn()) {
+
+      setStatus(
+        "③ 尚未登入 LINE\n\n" +
+        "準備登入..."
+      );
+
+      liff.login();
+
+      return;
     }
 
 
-    const script =
-      document.createElement("script");
-
-    script.id = "gas-api-script";
-
-
-    // JSONP callback
-    script.src =
-      GAS_URL +
-      "?callback=gasTestCallback&_=" +
-      Date.now();
+    setStatus(
+      "③ LINE 登入成功"
+    );
 
 
-    script.onerror = function() {
+    const idToken =
+      liff.getIDToken();
 
-      showError(
-        new Error(
-          "GAS API 無法連線。\n\n" +
-          "請確認 GAS Web App 部署網址與權限。"
-        )
+
+    if (!idToken) {
+
+      throw new Error(
+        "拿不到 LINE ID Token"
       );
-
-    };
-
-
-    document.body.appendChild(script);
-
-
-    // =====================================================
-    // Timeout
-    // =====================================================
-
-    setTimeout(function() {
-
-      const currentScript =
-        document.getElementById("gas-api-script");
-
-      if (currentScript) {
-
-        console.warn(
-          "GAS API 等待超過 10 秒"
-        );
-
-      }
-
-    }, 10000);
-
-  }
-
-
-  // =========================================================
-  // 初始化 LIFF
-  // =========================================================
-
-  async function init() {
-
-    try {
-
-      // -----------------------------------------------------
-      // ① 初始化 LIFF
-      // -----------------------------------------------------
-
-      setStatus(
-        "① 初始化 LIFF..."
-      );
-
-
-      await liff.init({
-
-        liffId: LIFF_ID,
-
-        withLoginOnExternalBrowser: true
-
-      });
-
-
-      // -----------------------------------------------------
-      // ② LIFF 初始化成功
-      // -----------------------------------------------------
-
-      setStatus(
-        "② LIFF 初始化成功"
-      );
-
-
-      // -----------------------------------------------------
-      // ③ 判斷 LINE 登入
-      // -----------------------------------------------------
-
-      if (!liff.isLoggedIn()) {
-
-        setStatus(
-          "③ 尚未登入 LINE\n\n" +
-          "準備登入..."
-        );
-
-
-        liff.login();
-
-        return;
-      }
-
-
-      setStatus(
-        "③ LINE 登入成功"
-      );
-
-
-      // -----------------------------------------------------
-      // ④ 取得 ID Token
-      // -----------------------------------------------------
-
-      const idToken =
-        liff.getIDToken();
-
-
-      if (!idToken) {
-
-        throw new Error(
-          "拿不到 LINE ID Token"
-        );
-
-      }
-
-
-      console.log(
-        "LINE ID Token 已取得"
-      );
-
-
-      // -----------------------------------------------------
-      // ⑤ 呼叫 GAS
-      // -----------------------------------------------------
-
-      callGasApi();
-
-
-    } catch (error) {
-
-      showError(error);
 
     }
 
+
+    console.log(
+      "ID Token 已取得"
+    );
+
+
+    callGas();
+
+  }
+  catch (error) {
+
+    console.error(error);
+
+    setStatus(
+      "❌ 發生錯誤\n\n" +
+      error.message
+    );
+
   }
 
+}
 
-  // =========================================================
-  // 開始
-  // =========================================================
 
-  init();
+init();
 
 </script>
 
