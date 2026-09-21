@@ -1286,65 +1286,67 @@
 
 
       window[callbackName] =
-        function(response) {
+  function(response) {
 
-          try {
+    try {
 
-            if (!response) {
-
-              throw new Error(
-                "GAS 沒有回傳資料"
-              );
-            }
-
-
-            if (!response.success) {
-
-              throw new Error(
-                response.message ||
-                "預約失敗"
-              );
-            }
+      if (!response) {
+        throw new Error(
+          "GAS 沒有回傳資料"
+        );
+      }
 
 
-            const data =
-              response.data;
+      if (!response.success) {
+        throw new Error(
+          response.message ||
+          "預約失敗"
+        );
+      }
 
 
-            classes =
-              data.classes || [];
+      // =========================
+      // 預約成功
+      // =========================
+
+      selectedClassIds = [];
 
 
-            selectedClassIds = [];
+      // =========================
+      // 重新從 GAS 取得最新課程
+      //
+      // 這裡不要直接使用
+      // submitSelectedBookings 回傳的 classes
+      //
+      // 因為取消按鈕需要 myBookings
+      // =========================
+
+      loadClasses();
 
 
-            renderClasses();
-
-            updateBottomBar();
-
-
-            showStatus(
-              "預約完成",
-              "success"
-            );
+      showStatus(
+        "預約完成",
+        "success"
+      );
 
 
-          } catch (error) {
+    } catch (error) {
 
-            console.error(error);
+      console.error(error);
 
-            showStatus(
-              error.message ||
-              "預約失敗",
-              "error"
-            );
+      showStatus(
+        error.message ||
+        "預約失敗",
+        "error"
+      );
 
-          } finally {
+    } finally {
 
-            finish();
-          }
+      finish();
 
-        };
+    }
+
+  };
 
 
       script.src =
