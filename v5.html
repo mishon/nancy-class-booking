@@ -1358,27 +1358,56 @@ if (myBookings.length) {
        * 且還有名額
        */
 
-      if (
-        !hasMyBooking &&
-        !isFull
-      ) {
+      /*
+ * =========================
+ * 課程選擇
+ *
+ * 尚未預約：
+ *   可以自己預約 / 幫朋友預約
+ *
+ * 已經自己預約：
+ *   不可以再次自己預約
+ *   但仍然可以幫朋友預約
+ *
+ * 已滿：
+ *   不可以再預約
+ * =========================
+ */
 
-        card.addEventListener(
-          "click",
-          function() {
+if (!isFull) {
 
-            if (isSubmitting) {
-              return;
-            }
+  card.addEventListener(
+    "click",
+    function(event) {
 
-            toggleSelection(
-              cls.classId
-            );
-
-          }
-        );
+      if (isSubmitting) {
+        return;
       }
 
+
+      /*
+       * 如果點的是「取消」按鈕，
+       * 不要觸發課程選擇。
+       */
+      if (
+        event.target &&
+        event.target.closest &&
+        event.target.closest(
+          ".cancel-button"
+        )
+      ) {
+        return;
+      }
+
+
+      toggleSelection(
+        cls.classId
+      );
+
+    }
+  );
+
+}
 
       return card;
     }
@@ -1424,8 +1453,8 @@ if (myBookings.length) {
 
       const count =
         selectedClassIds.length;
-
-
+    
+    
       document
         .getElementById(
           "selectedInfo"
@@ -1438,23 +1467,88 @@ if (myBookings.length) {
             : "尚未選擇課程";
 
 
-      document
-        .getElementById(
-          "selfButton"
-        )
-        .disabled =
-          count === 0 ||
-          isSubmitting;
+      /*
+       * =========================
+       * 判斷目前選取的課程
+       * 是否全部都是「尚未預約」
+       * =========================
+       */
+    
+      let canSelfBook = true;
+    
+    
+      selectedClassIds.forEach(
+        function(classId) {
+    
+          const cls =
+            classes.find(
+              function(item) {
+    
+                return String(
+                  item.classId
+                ) === String(
+                  classId
+                );
+    
+              }
+            );
+    
+    
+          if (!cls) {
+            return;
+          }
+    
+    
+          const myBookings =
+            cls.myBookings || [];
+    
+    
+          const hasMyBooking =
+            myBookings.length > 0 ||
+            cls.bookedByMe === true;
+    
+    
+          if (hasMyBooking) {
+            canSelfBook = false;
+          }
+    
+        }
+      );
 
 
-      document
-        .getElementById(
-          "guestButton"
-        )
-        .disabled =
-          count === 0 ||
-          isSubmitting;
-    }
+  /*
+   * 自己預約：
+   *
+   * 只有所有選取課程
+   * 都還沒有自己的預約
+   * 才可以按
+   */
+
+  document
+    .getElementById(
+      "selfButton"
+    )
+    .disabled =
+      count === 0 ||
+      isSubmitting ||
+      !canSelfBook;
+
+
+  /*
+   * 幫朋友預約：
+   *
+   * 只要有選課就可以
+   */
+
+  document
+    .getElementById(
+      "guestButton"
+    )
+    .disabled =
+      count === 0 ||
+      isSubmitting;
+
+}
 
 
     /*
