@@ -1570,262 +1570,262 @@ if (!isFull) {
 
     function submitSelfBookings() {
 
-  if (
-    isSubmitting ||
-    !selectedClassIds.length
-  ) {
-    return;
-  }
-
-
-  const ids =
-    selectedClassIds.slice();
-
-
-  if (
-    !confirm(
-      "確定要預約所選的 " +
-      ids.length +
-      " 堂課嗎？"
-    )
-  ) {
-    return;
-  }
-
-
-  isSubmitting = true;
-
-  showLoading(
-    "預約處理中，請稍候..."
-  );
-
-  updateBottomBar();
-
-
-  const callbackName =
-    "gasSubmitCallback_" +
-    Date.now();
-
-
-  const script =
-    document.createElement(
-      "script"
-    );
-
-
-  let finished = false;
-
-
-  function finish() {
-
-    if (finished) {
-      return;
-    }
-
-    finished = true;
-
-    isSubmitting = false;
-
-    hideLoading();
-
-    updateBottomBar();
-
-    cleanupJsonp(
-      callbackName,
-      script
-    );
-  }
-
-
-  window[callbackName] =
-    function(response) {
-
-      try {
-
-        if (!response) {
-
-          throw new Error(
-            "GAS 沒有回傳資料"
-          );
-
-        }
-
-
-        if (!response.success) {
-
-          throw new Error(
-            response.message ||
-            "預約失敗"
-          );
-
-        }
-
-
-        /*
-         * =========================
-         * GAS 正常回傳
-         * =========================
-         */
-
-        selectedClassIds = [];
-
-
-        /*
-         * 不直接使用 submitBookings
-         * 回傳的 classes。
-         *
-         * 重新取得一次最新資料，
-         * 確保 myBookings 正確。
-         */
-
-        loadClasses();
-
-
-        showStatus(
-          "預約完成",
-          "success"
-        );
-
-
-      } catch (error) {
-
-        console.error(error);
-
-        showStatus(
-          error.message ||
-          "預約失敗",
-          "error"
-        );
-
-      } finally {
-
-        finish();
-
-      }
-
-    };
-
-
-  script.src =
-    GAS_URL +
-    "?callback=" +
-    encodeURIComponent(
-      callbackName
-    ) +
-    "&action=submitBookings" +
-    "&idToken=" +
-    encodeURIComponent(
-      idToken
-    ) +
-    "&selectedClassIds=" +
-    encodeURIComponent(
-      JSON.stringify(ids)
-    );
-
-
-  script.onerror =
-    function() {
-
-      /*
-       * =========================
-       * JSONP 連線錯誤
-       *
-       * 後端可能其實已經成功，
-       * 所以不要直接判定預約失敗。
-       *
-       * 改成重新抓資料。
-       * =========================
-       */
-
-      console.warn(
-        "預約 JSONP callback 失敗，重新取得課程"
-      );
-
-
-      selectedClassIds = [];
-
-      isSubmitting = false;
-
-      cleanupJsonp(
-        callbackName,
-        script
-      );
-
-
-      showLoading(
-        "正在確認預約結果，請稍候..."
-      );
-
-
-      loadClasses();
-
-
-      showStatus(
-        "正在更新預約結果...",
-        "info"
-      );
-
-    };
-
-
-  document.body.appendChild(
-    script
-  );
-
-
-  /*
-   * ================================
-   * 最重要的保險機制
-   *
-   * GAS 已經寫入成功，
-   * 但 LINE / iOS 沒收到 JSONP callback
-   * 時，不讓畫面永遠卡住。
-   * ================================
-   */
-
-  setTimeout(
-    function() {
-
-      if (finished) {
+      if (
+        isSubmitting ||
+        !selectedClassIds.length
+      ) {
         return;
       }
-
-
-      console.warn(
-        "預約 callback timeout，重新取得課程"
+    
+    
+      const ids =
+        selectedClassIds.slice();
+    
+    
+      if (
+        !confirm(
+          "確定要預約所選的 " +
+          ids.length +
+          " 堂課嗎？"
+        )
+      ) {
+        return;
+      }
+    
+    
+      isSubmitting = true;
+    
+      showLoading(
+        "預約處理中，請稍候..."
       );
-
-
-      selectedClassIds = [];
-
-
-      isSubmitting = false;
-
-
-      cleanupJsonp(
-        callbackName,
+    
+      updateBottomBar();
+    
+    
+      const callbackName =
+        "gasSubmitCallback_" +
+        Date.now();
+    
+    
+      const script =
+        document.createElement(
+          "script"
+        );
+    
+    
+      let finished = false;
+    
+    
+      function finish() {
+    
+        if (finished) {
+          return;
+        }
+    
+        finished = true;
+    
+        isSubmitting = false;
+    
+        hideLoading();
+    
+        updateBottomBar();
+    
+        cleanupJsonp(
+          callbackName,
+          script
+        );
+      }
+    
+    
+      window[callbackName] =
+        function(response) {
+    
+          try {
+    
+            if (!response) {
+    
+              throw new Error(
+                "GAS 沒有回傳資料"
+              );
+    
+            }
+    
+    
+            if (!response.success) {
+    
+              throw new Error(
+                response.message ||
+                "預約失敗"
+              );
+    
+            }
+    
+    
+            /*
+             * =========================
+             * GAS 正常回傳
+             * =========================
+             */
+    
+            selectedClassIds = [];
+    
+    
+            /*
+             * 不直接使用 submitBookings
+             * 回傳的 classes。
+             *
+             * 重新取得一次最新資料，
+             * 確保 myBookings 正確。
+             */
+    
+            loadClasses();
+    
+    
+            showStatus(
+              "預約完成",
+              "success"
+            );
+    
+    
+          } catch (error) {
+    
+            console.error(error);
+    
+            showStatus(
+              error.message ||
+              "預約失敗",
+              "error"
+            );
+    
+          } finally {
+    
+            finish();
+    
+          }
+    
+        };
+    
+    
+      script.src =
+        GAS_URL +
+        "?callback=" +
+        encodeURIComponent(
+          callbackName
+        ) +
+        "&action=submitBookings" +
+        "&idToken=" +
+        encodeURIComponent(
+          idToken
+        ) +
+        "&selectedClassIds=" +
+        encodeURIComponent(
+          JSON.stringify(ids)
+        );
+    
+    
+      script.onerror =
+        function() {
+    
+          /*
+           * =========================
+           * JSONP 連線錯誤
+           *
+           * 後端可能其實已經成功，
+           * 所以不要直接判定預約失敗。
+           *
+           * 改成重新抓資料。
+           * =========================
+           */
+    
+          console.warn(
+            "預約 JSONP callback 失敗，重新取得課程"
+          );
+    
+    
+          selectedClassIds = [];
+    
+          isSubmitting = false;
+    
+          cleanupJsonp(
+            callbackName,
+            script
+          );
+    
+    
+          showLoading(
+            "正在確認預約結果，請稍候..."
+          );
+    
+    
+          loadClasses();
+    
+    
+          showStatus(
+            "正在更新預約結果...",
+            "info"
+          );
+    
+        };
+    
+    
+      document.body.appendChild(
         script
       );
-
-
-      showLoading(
-        "正在確認預約結果，請稍候..."
+    
+    
+      /*
+       * ================================
+       * 最重要的保險機制
+       *
+       * GAS 已經寫入成功，
+       * 但 LINE / iOS 沒收到 JSONP callback
+       * 時，不讓畫面永遠卡住。
+       * ================================
+       */
+    
+      setTimeout(
+        function() {
+    
+          if (finished) {
+            return;
+          }
+    
+    
+          console.warn(
+            "預約 callback timeout，重新取得課程"
+          );
+    
+    
+          selectedClassIds = [];
+    
+    
+          isSubmitting = false;
+    
+    
+          cleanupJsonp(
+            callbackName,
+            script
+          );
+    
+    
+          showLoading(
+            "正在確認預約結果，請稍候..."
+          );
+    
+    
+          loadClasses();
+    
+    
+          showStatus(
+            "預約已送出，正在更新課程資料...",
+            "info"
+          );
+    
+        },
+        8000
       );
-
-
-      loadClasses();
-
-
-      showStatus(
-        "預約已送出，正在更新課程資料...",
-        "info"
-      );
-
-    },
-    8000
-  );
-
-}
+    
+    }
 
 
     /*
