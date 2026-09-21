@@ -524,37 +524,72 @@
 
 
     async function init() {
+  const status = document.getElementById("status");
+  const welcome = document.getElementById("welcomeText");
 
   try {
+    // 先確定 HTML / JavaScript 本身有正常執行
+    welcome.textContent = "V5 正在啟動...";
 
-    showLoading(
-      "正在初始化，請稍候..."
-    );
+    showStatus("① 開始初始化 LIFF...", "info");
 
-    await liff.init({
+    // 防止 liff.init() 無限卡住
+    const initPromise = liff.init({
       liffId: LIFF_ID,
       withLoginOnExternalBrowser: true
     });
 
+    const timeoutPromise = new Promise(function(_, reject) {
+      setTimeout(function() {
+        reject(
+          new Error(
+            "LIFF 初始化超過 15 秒，可能是 LINE LIFF 初始化沒有完成。"
+          )
+        );
+      }, 15000);
+    });
+
+    await Promise.race([
+      initPromise,
+      timeoutPromise
+    ]);
+
+    showStatus("② LIFF 初始化完成", "success");
+
     console.log("LIFF 初始化完成");
-    console.log("isInClient =", liff.isInClient());
-    console.log("isLoggedIn =", liff.isLoggedIn());
+    console.log("LIFF ID:", LIFF_ID);
+    console.log("isInClient:", liff.isInClient());
+    console.log("isLoggedIn:", liff.isLoggedIn());
 
     if (!liff.isLoggedIn()) {
+
+      showStatus(
+        "③ LINE 尚未登入",
+        "error"
+      );
 
       throw new Error(
         "LINE 尚未登入，請重新從 LINE 開啟課程預約。"
       );
     }
 
+    showStatus(
+      "③ LINE 登入狀態正常",
+      "success"
+    );
+
     idToken = liff.getIDToken();
 
     if (!idToken) {
-
       throw new Error(
-        "無法取得 LINE 身分資訊"
+        "無法取得 LINE ID Token"
       );
     }
+
+    showStatus(
+      "④ 已取得 LINE 身分，正在取得課程...",
+      "info"
+    );
 
     console.log("已取得 LINE ID Token");
 
@@ -562,13 +597,16 @@
 
   } catch (error) {
 
-    console.error("LIFF 初始化失敗:", error);
+    console.error(
+      "LIFF 初始化失敗:",
+      error
+    );
 
     hideLoading();
 
     showStatus(
-      error.message ||
-      "初始化失敗",
+      "❌ " +
+      (error.message || String(error)),
       "error"
     );
   }
