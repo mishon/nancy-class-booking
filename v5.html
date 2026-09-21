@@ -1610,6 +1610,12 @@ if (!isFull) {
 
       let finished = false;
 
+      // 預約成功後會再呼叫 loadClasses()
+      // 重新取得最新課程。
+      // loadClasses() 自己會負責 loading 的顯示與關閉，
+      // 因此這裡不能再把 loading 提前關掉。
+      let reloadingClasses = false;
+
 
       function finish() {
 
@@ -1621,7 +1627,9 @@ if (!isFull) {
 
         isSubmitting = false;
 
-        hideLoading();
+        if (!reloadingClasses) {
+          hideLoading();
+        }
 
         updateBottomBar();
 
@@ -1665,14 +1673,23 @@ if (!isFull) {
       // 這裡不要直接使用
       // submitSelectedBookings 回傳的 classes
       //
-      // 因為取消按鈕需要 myBookings
+      // 因為取消按鈕需要 myBookings。
+      //
+      // loadClasses() 會自己顯示 loading，
+      // 並在最新課程取得完成後關閉 loading。
       // =========================
+
+      reloadingClasses = true;
+
+      showLoading(
+        "預約成功，正在更新課程資料，請稍候..."
+      );
 
       loadClasses();
 
 
       showStatus(
-        "預約完成",
+        "預約成功，正在更新課程資料...",
         "success"
       );
 
