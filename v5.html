@@ -10,7 +10,7 @@
     content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
   >
 
-  <title>V5 Free Life Nancy的械式皮拉提斯課程預約小工具</title>
+  <title>Free Life Nancy的械式皮拉提斯課程預約小工具</title>
 
   <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
 
@@ -439,7 +439,7 @@
   <div class="container">
 
     <div class="title">
-      V5 Free Life Nancy的械式皮拉提斯課程預約小工具
+      Free Life Nancy的械式皮拉提斯課程預約小工具
     </div>
 
     <div id="welcomeText" class="welcome">
@@ -1329,12 +1329,18 @@ if (myBookings.length) {
       script.onerror =
         function() {
 
+          // GAS 可能已經完成寫入，但 JSONP 回應在 LINE WebView 中失敗。
+          // 不直接判定取消失敗，改為重新讀取後端最新狀態。
           showStatus(
-            "取消系統連線失敗。",
-            "error"
+            "取消已送出，正在更新課程...",
+            "info"
           );
 
           finish();
+
+          setTimeout(function() {
+            loadClasses();
+          }, 800);
 
         };
 
@@ -2133,9 +2139,14 @@ if (!isFull) {
             showStatus(
               "已取消「" +
               name +
-              "」的預約",
+              "」的預約，正在更新課程...",
               "success"
             );
+
+            // 重新從 GAS 取得最新資料，確保畫面與 Bookings 同步
+            setTimeout(function() {
+              loadClasses();
+            }, 300);
 
 
           } catch (error) {
@@ -2176,12 +2187,18 @@ if (!isFull) {
       script.onerror =
         function() {
 
+          // GAS 可能已經完成寫入，但 JSONP 回應在 LINE WebView 中失敗。
+          // 不直接判定取消失敗，改為重新讀取後端最新狀態。
           showStatus(
-            "取消系統連線失敗。",
-            "error"
+            "取消已送出，正在更新課程...",
+            "info"
           );
 
           finish();
+
+          setTimeout(function() {
+            loadClasses();
+          }, 800);
 
         };
 
