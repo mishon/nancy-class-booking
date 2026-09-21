@@ -872,12 +872,17 @@
         cardClass +=
           " has-my-booking";
 
-      } else if (isFull) {
+      }
 
-        cardClass += " full";
+      if (isFull) {
+
+        cardClass +=
+          " full";
 
       } else {
 
+        // 即使自己已經預約，只要還有名額，
+        // 仍可選取這堂課來幫朋友預約。
         cardClass +=
           " selectable";
       }
