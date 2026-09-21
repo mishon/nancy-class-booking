@@ -5,12 +5,14 @@
 
   <meta charset="UTF-8">
 
+  <meta name="referrer" content="no-referrer">
+
   <meta
     name="viewport"
     content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
   >
 
-  <title>Free Life Nancy的械式皮拉提斯課程預約小工具</title>
+  <title>Nancy課程預約</title>
 
   <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
 
@@ -439,7 +441,7 @@
   <div class="container">
 
     <div class="title">
-      Free Life Nancy的械式皮拉提斯課程預約小工具
+      V5 Free Life Nancy的械式皮拉提斯課程預約小工具
     </div>
 
     <div id="welcomeText" class="welcome">
@@ -517,6 +519,13 @@
     let isSubmitting = false;
 
 
+    // 不讓 LINE ID Token 長時間留在頁面記憶體中
+    // 離開頁面時清除。
+    window.addEventListener("pagehide", function() {
+      idToken = "";
+    });
+
+
     window.addEventListener(
       "load",
       init
@@ -591,8 +600,6 @@
       "info"
     );
 
-    console.log("已取得 LINE ID Token");
-
     loadClasses();
 
   } catch (error) {
@@ -663,57 +670,21 @@
     }
 
 
-    /*
-     * ============================================================
-     * V5 API / 畫面同步核心
-     *
-     * 原則：
-     * 1. 預約、代訂、取消都只送一次後端操作。
-     * 2. 正常收到 JSONP callback：立即更新畫面。
-     * 3. 如果後端已寫入，但 JSONP callback 沒回來：
-     *    短時間後改用「重新讀取課程」確認結果。
-     * 4. 不使用 8 秒長時間 loading。
-     * 5. 所有操作共用同一套處理流程，避免一個一個補。
-     * ============================================================
-     */
+    function createSafeCallbackName(prefix) {
 
-    function applyBookingData(data) {
+      let randomPart = "";
 
-      if (!data) {
-        throw new Error(
-          "沒有取得課程資料"
-        );
+      if (window.crypto && window.crypto.getRandomValues) {
+        const values = new Uint32Array(2);
+        window.crypto.getRandomValues(values);
+        randomPart = values[0].toString(36) + values[1].toString(36);
+      } else {
+        randomPart = Math.random().toString(36).substring(2);
       }
 
-
-      classes =
-        data.classes || [];
-
-
-      if (data.userName) {
-
-        document
-          .getElementById(
-            "welcomeText"
-          )
-          .textContent =
-            data.userName +
-            "，您好";
-
-      }
-
-
-      renderClasses();
-
-      updateBottomBar();
+      return prefix + Date.now().toString(36) + "_" + randomPart;
     }
 
-
-    /*
-     * ------------------------------------------------------------
-     * 一般取得課程
-     * ------------------------------------------------------------
-     */
 
     function loadClasses() {
 
@@ -722,102 +693,15 @@
       );
 
 
-      fetchBookingData(
-        function(data) {
-
-          selectedClassIds = [];
-
-          applyBookingData(data);
-
-          hideLoading();
-
-        },
-        function(error) {
-
-          hideLoading();
-
-          console.error(error);
-
-          showStatus(
-            error.message ||
-            "取得課程失敗",
-            "error"
-          );
-
-        }
-      );
-    }
-
-
-    /*
-     * ------------------------------------------------------------
-     * 靜默重新取得課程
-     *
-     * 不顯示 loading。
-     * 給「預約成功但 callback 沒回來」時使用。
-     * ------------------------------------------------------------
-     */
-
-    function refreshClassesSilently(
-      success,
-      failure
-    ) {
-
-      fetchBookingData(
-        function(data) {
-
-          try {
-
-            applyBookingData(data);
-
-            if (success) {
-              success(data);
-            }
-
-          } catch (error) {
-
-            if (failure) {
-              failure(error);
-            }
-
-          }
-
-        },
-        function(error) {
-
-          if (failure) {
-            failure(error);
-          }
-
-        }
-      );
-    }
-
-
-    /*
-     * ------------------------------------------------------------
-     * 讀取課程 API
-     * ------------------------------------------------------------
-     */
-
-    function fetchBookingData(
-      success,
-      failure
-    ) {
-
       const callbackName =
-        "gasBookingCallback_" +
-        Date.now() +
-        "_" +
-        Math.floor(
-          Math.random() * 100000
-        );
-
+        createSafeCallbackName("gasBookingCallback_");
 
       const script =
         document.createElement(
           "script"
         );
+
+      script.referrerPolicy = "no-referrer";
 
 
       let finished = false;
@@ -830,6 +714,8 @@
         }
 
         finished = true;
+
+        hideLoading();
 
         cleanupJsonp(
           callbackName,
@@ -848,7 +734,6 @@
               throw new Error(
                 "GAS 沒有回傳資料"
               );
-
             }
 
 
@@ -858,7 +743,6 @@
                 response.message ||
                 "取得課程失敗"
               );
-
             }
 
 
@@ -866,47 +750,47 @@
               response.data;
 
 
-            finish();
+            classes =
+              data.classes || [];
 
 
-            if (success) {
-              success(data);
-            }
+            document
+              .getElementById(
+                "welcomeText"
+              )
+              .textContent =
+                (data.userName ||
+                "LINE會員") +
+                "，您好";
+
+
+            selectedClassIds = [];
+
+
+            renderClasses();
+
+            updateBottomBar();
 
 
           } catch (error) {
 
-            finish();
+            console.error(error);
 
-
-            if (failure) {
-              failure(error);
-            }
-
-          }
-
-        };
-
-
-      script.onerror =
-        function() {
-
-          finish();
-
-          if (failure) {
-
-            failure(
-              new Error(
-                "無法連線到預約系統。"
-              )
+            showStatus(
+              error.message ||
+              "取得課程失敗",
+              "error"
             );
 
+          } finally {
+
+            finish();
           }
 
         };
 
 
-      script.src =
+      const url =
         GAS_URL +
         "?callback=" +
         encodeURIComponent(
@@ -916,8 +800,24 @@
         encodeURIComponent(
           idToken
         ) +
-        "&_t=" +
+        "&_ts=" +
         Date.now();
+
+
+      script.src = url;
+
+
+      script.onerror =
+        function() {
+
+          showStatus(
+            "無法連線到預約系統。",
+            "error"
+          );
+
+          finish();
+
+        };
 
 
       document.body.appendChild(
@@ -926,19 +826,12 @@
     }
 
 
-    /*
-     * ------------------------------------------------------------
-     * 課程卡片
-     * ------------------------------------------------------------
-     */
-
     function renderClasses() {
 
       const container =
         document.getElementById(
           "classList"
         );
-
 
       container.innerHTML = "";
 
@@ -947,22 +840,20 @@
 
         container.innerHTML =
           '<div class="empty">' +
-          "目前沒有課程" +
-          "</div>";
+          '目前沒有課程' +
+          '</div>';
 
         return;
       }
 
 
-      classes.forEach(
-        function(cls) {
+      classes.forEach(function(cls) {
 
-          container.appendChild(
-            createClassCard(cls)
-          );
+        container.appendChild(
+          createClassCard(cls)
+        );
 
-        }
-      );
+      });
     }
 
 
@@ -981,8 +872,7 @@
 
       const myBookings =
         cls.myBookings || [];
-
-
+    
       const hasMyBooking =
         myBookings.length > 0 ||
         cls.bookedByMe === true;
@@ -999,10 +889,7 @@
 
 
       if (selected) {
-
-        cardClass +=
-          " selected";
-
+        cardClass += " selected";
       }
 
 
@@ -1013,7 +900,6 @@
 
       }
 
-
       if (isFull) {
 
         cardClass +=
@@ -1021,16 +907,10 @@
 
       } else {
 
-        /*
-         * 只要沒有滿：
-         *
-         * 1. 尚未預約 → 可以自己預約
-         * 2. 已自己預約 → 可以幫朋友預約
-         */
-
+        // 即使自己已經預約，只要還有名額，
+        // 仍可選取這堂課來幫朋友預約。
         cardClass +=
           " selectable";
-
       }
 
 
@@ -1088,6 +968,7 @@
           "div"
         );
 
+
       count.className =
         "class-count " +
         (
@@ -1122,7 +1003,6 @@
         "上課時間：" +
         cls.time;
 
-
       card.appendChild(time);
 
 
@@ -1147,195 +1027,421 @@
           "目前預約：" +
           cls.names.join("、");
 
-
         card.appendChild(names);
-
       }
 
 
       /*
        * 我的預約
-       *
-       * myBookings 由 GAS 提供：
-       *
-       * 自己預約：
-       *   isGuest = false
-       *
-       * 幫朋友預約：
-       *   isGuest = true
        */
 
+/*
+ * 我的預約
+ */
+
+if (myBookings.length) {
+
+  const myBox =
+    document.createElement(
+      "div"
+    );
+
+  myBox.className =
+    "my-bookings";
+
+
+  myBookings.forEach(
+    function(booking) {
+
+      const item =
+        document.createElement(
+          "div"
+        );
+
+      item.className =
+        "my-booking-item";
+
+
+      const name =
+        document.createElement(
+          "div"
+        );
+
+      name.className =
+        "my-booking-name";
+
+      name.textContent =
+        booking.name;
+
+
+      // =========================
+      // 幫朋友預約
+      // =========================
+
       if (
-        myBookings.length
+        booking.isGuest
       ) {
 
-        const myBox =
+        const label =
           document.createElement(
-            "div"
+            "span"
           );
 
-        myBox.className =
-          "my-bookings";
+        label.className =
+          "guest-label";
+
+        label.textContent =
+          "（代訂）";
+
+        name.appendChild(
+          label
+        );
+
+      }
 
 
-        myBookings.forEach(
-          function(booking) {
+      // =========================
+      // 取消按鈕
+      // =========================
 
-            const item =
-              document.createElement(
-                "div"
+      const cancel =
+        document.createElement(
+          "button"
+        );
+
+      cancel.className =
+        "cancel-button";
+
+      cancel.textContent =
+        "取消";
+
+
+      cancel.addEventListener(
+        "click",
+        function(event) {
+
+          event.stopPropagation();
+
+          cancelBookingById(
+            booking.bookingId,
+            cls.date,
+            cls.time,
+            booking.name
+          );
+
+        }
+      );
+
+
+      item.appendChild(name);
+
+      item.appendChild(cancel);
+
+      myBox.appendChild(item);
+
+    }
+  );
+
+
+  card.appendChild(myBox);
+
+
+} else if (
+  cls.bookedByMe === true
+) {
+
+  /*
+   * =========================
+   * 自己預約
+   *
+   * 如果後端只有回傳
+   * bookedByMe=true
+   * 但沒有 myBookings，
+   * 仍然提供取消按鈕。
+   * =========================
+   */
+
+  const myBox =
+    document.createElement(
+      "div"
+    );
+
+  myBox.className =
+    "my-bookings";
+
+
+  const item =
+    document.createElement(
+      "div"
+    );
+
+  item.className =
+    "my-booking-item";
+
+
+  const name =
+    document.createElement(
+      "div"
+    );
+
+  name.className =
+    "my-booking-name";
+
+  name.textContent =
+    "我的預約";
+
+
+  const cancel =
+    document.createElement(
+      "button"
+    );
+
+  cancel.className =
+    "cancel-button";
+
+  cancel.textContent =
+    "取消";
+
+
+  cancel.addEventListener(
+    "click",
+    function(event) {
+
+      event.stopPropagation();
+
+
+      if (isSubmitting) {
+        return;
+      }
+
+
+      if (
+        !confirm(
+          "確定要取消「" +
+          cls.date +
+          " " +
+          cls.time +
+          "」的預約嗎？"
+        )
+      ) {
+        return;
+      }
+
+
+      isSubmitting = true;
+
+      showLoading(
+        "取消預約處理中，請稍候..."
+      );
+
+      updateBottomBar();
+
+
+      const callbackName =
+        createSafeCallbackName("gasCancelCallback_");
+
+
+      const script =
+        document.createElement(
+          "script"
+        );
+
+      script.referrerPolicy = "no-referrer";
+
+
+      let finished = false;
+
+
+      function finish() {
+
+        if (finished) {
+          return;
+        }
+
+        finished = true;
+
+        isSubmitting = false;
+
+        hideLoading();
+
+        updateBottomBar();
+
+        cleanupJsonp(
+          callbackName,
+          script
+        );
+
+      }
+
+
+      window[callbackName] =
+        function(response) {
+
+          try {
+
+            if (!response) {
+              throw new Error(
+                "GAS 沒有回傳資料"
               );
-
-            item.className =
-              "my-booking-item";
+            }
 
 
-            const name =
-              document.createElement(
-                "div"
-              );
+            if (!response.success) {
 
-            name.className =
-              "my-booking-name";
-
-
-            name.textContent =
-              booking.name ||
-              "我的預約";
-
-
-            if (
-              booking.isGuest
-            ) {
-
-              const label =
-                document.createElement(
-                  "span"
-                );
-
-              label.className =
-                "guest-label";
-
-              label.textContent =
-                "（代訂）";
-
-
-              name.appendChild(
-                label
+              throw new Error(
+                response.message ||
+                "取消失敗"
               );
 
             }
 
 
-            const cancel =
-              document.createElement(
-                "button"
-              );
+            const data =
+              response.data;
 
-            cancel.className =
-              "cancel-button";
+            classes =
+              data.classes || [];
 
-            cancel.textContent =
-              "取消";
+            selectedClassIds = [];
 
+            renderClasses();
 
-            cancel.addEventListener(
-              "click",
-              function(event) {
-
-                event.stopPropagation();
+            updateBottomBar();
 
 
-                if (
-                  booking.bookingId
-                ) {
-
-                  cancelBookingById(
-                    booking.bookingId,
-                    cls.date,
-                    cls.time,
-                    booking.name ||
-                    "我的預約"
-                  );
-
-                } else {
-
-                  /*
-                   * 舊資料若沒有 bookingId，
-                   * 自己的預約仍可用 classId 取消。
-                   */
-
-                  cancelMyClassBooking(
-                    cls.classId,
-                    cls.date,
-                    cls.time,
-                    booking.name ||
-                    "我的預約"
-                  );
-
-                }
-
-              }
+            showStatus(
+              "已取消 " +
+              cls.date +
+              " 的預約",
+              "success"
             );
 
 
-            item.appendChild(name);
+          } catch (error) {
 
-            item.appendChild(cancel);
+            console.error(error);
 
-            myBox.appendChild(item);
+            showStatus(
+              error.message ||
+              "取消失敗",
+              "error"
+            );
+
+          } finally {
+
+            finish();
 
           }
-        );
+
+        };
 
 
-        card.appendChild(myBox);
+      script.src =
+        GAS_URL +
+        "?callback=" +
+        encodeURIComponent(
+          callbackName
+        ) +
+        "&action=cancelBooking" +
+        "&idToken=" +
+        encodeURIComponent(
+          idToken
+        ) +
+        "&classId=" +
+        encodeURIComponent(
+          cls.classId
+        ) +
+        "&_ts=" +
+        Date.now();
 
+
+      script.onerror =
+        function() {
+
+          showStatus(
+            "取消系統連線失敗。",
+            "error"
+          );
+
+          finish();
+
+        };
+
+
+      document.body.appendChild(
+        script
+      );
+
+    }
+  );
+
+
+  item.appendChild(name);
+
+  item.appendChild(cancel);
+
+  myBox.appendChild(item);
+
+  card.appendChild(myBox);
+}
+
+      /*
+       * 可以選擇：
+       *
+       * 只要這堂課沒有自己的預約
+       * 且還有名額
+       */
+
+      /*
+ * =========================
+ * 課程選擇
+ *
+ * 尚未預約：
+ *   可以自己預約 / 幫朋友預約
+ *
+ * 已經自己預約：
+ *   不可以再次自己預約
+ *   但仍然可以幫朋友預約
+ *
+ * 已滿：
+ *   不可以再預約
+ * =========================
+ */
+
+if (!isFull) {
+
+  card.addEventListener(
+    "click",
+    function(event) {
+
+      if (isSubmitting) {
+        return;
       }
 
 
       /*
-       * 課程選擇
-       *
-       * 只要未滿，都可以選。
-       *
-       * 已經自己預約：
-       *   可以選來幫朋友預約。
+       * 如果點的是「取消」按鈕，
+       * 不要觸發課程選擇。
        */
-
-      if (!isFull) {
-
-        card.addEventListener(
-          "click",
-          function(event) {
-
-            if (isSubmitting) {
-              return;
-            }
-
-
-            if (
-              event.target &&
-              event.target.closest &&
-              event.target.closest(
-                ".cancel-button"
-              )
-            ) {
-
-              return;
-
-            }
-
-
-            toggleSelection(
-              cls.classId
-            );
-
-          }
-        );
-
+      if (
+        event.target &&
+        event.target.closest &&
+        event.target.closest(
+          ".cancel-button"
+        )
+      ) {
+        return;
       }
 
+
+      toggleSelection(
+        cls.classId
+      );
+
+    }
+  );
+
+}
 
       return card;
     }
@@ -1368,7 +1474,6 @@
         selectedClassIds.push(
           classId
         );
-
       }
 
 
@@ -1382,8 +1487,8 @@
 
       const count =
         selectedClassIds.length;
-
-
+    
+    
       document
         .getElementById(
           "selectedInfo"
@@ -1397,494 +1502,87 @@
 
 
       /*
-       * 自己預約：
-       *
-       * 選到任何「已經是自己的課程」
-       * 就不能按自己預約。
+       * =========================
+       * 判斷目前選取的課程
+       * 是否全部都是「尚未預約」
+       * =========================
        */
-
-      let canSelfBook =
-        count > 0;
-
-
+    
+      let canSelfBook = true;
+    
+    
       selectedClassIds.forEach(
         function(classId) {
-
+    
           const cls =
             classes.find(
               function(item) {
-
+    
                 return String(
                   item.classId
-                ) ===
-                String(classId);
-
+                ) === String(
+                  classId
+                );
+    
               }
             );
-
-
+    
+    
           if (!cls) {
             return;
           }
-
-
+    
+    
           const myBookings =
             cls.myBookings || [];
-
-
+    
+    
           const hasMyBooking =
             myBookings.length > 0 ||
             cls.bookedByMe === true;
-
-
+    
+    
           if (hasMyBooking) {
-
             canSelfBook = false;
-
           }
-
+    
         }
       );
 
 
-      document
-        .getElementById(
-          "selfButton"
-        )
-        .disabled =
-          count === 0 ||
-          isSubmitting ||
-          !canSelfBook;
-
-
-      /*
-       * 幫朋友預約：
-       *
-       * 只要有選課、且尚未滿，
-       * 就可以按。
-       *
-       * 已滿的課程不會被加入選擇，
-       * 但這裡仍保留簡單判斷。
-       */
-
-      let canGuestBook =
-        count > 0;
-
-
-      selectedClassIds.forEach(
-        function(classId) {
-
-          const cls =
-            classes.find(
-              function(item) {
-
-                return String(
-                  item.classId
-                ) ===
-                String(classId);
-
-              }
-            );
-
-
-          if (
-            cls &&
-            Number(cls.count) >=
-            Number(cls.maxPeople)
-          ) {
-
-            canGuestBook = false;
-
-          }
-
-        }
-      );
-
-
-      document
-        .getElementById(
-          "guestButton"
-        )
-        .disabled =
-          count === 0 ||
-          isSubmitting ||
-          !canGuestBook;
-
-    }
-
-
-    /*
-     * ============================================================
-     * 共用：送出後如果 callback 沒回來，
-     *       用最新課程資料確認結果。
-     *
-     * fallbackDelay = 1200ms
-     * 不再使用 8 秒長等待。
-     * ============================================================
-     */
-
-    function runBookingAction(
-      action,
-      params,
-      loadingMessage,
-      successMessage,
-      successMessageFunction
-    ) {
-
-      if (isSubmitting) {
-        return;
-      }
-
-
-      isSubmitting = true;
-
-      showLoading(
-        loadingMessage
-      );
-
-      updateBottomBar();
-
-
-      const callbackName =
-        "gasActionCallback_" +
-        Date.now() +
-        "_" +
-        Math.floor(
-          Math.random() * 100000
-        );
-
-
-      const script =
-        document.createElement(
-          "script"
-        );
-
-
-      let finished = false;
-
-      let fallbackTimer = null;
-
-
-      function finish() {
-
-        if (finished) {
-          return;
-        }
-
-
-        finished = true;
-
-
-        if (fallbackTimer) {
-
-          clearTimeout(
-            fallbackTimer
-          );
-
-          fallbackTimer = null;
-
-        }
-
-
-        isSubmitting = false;
-
-        hideLoading();
-
-        updateBottomBar();
-
-
-        cleanupJsonp(
-          callbackName,
-          script
-        );
-
-      }
-
-
-      function finishWithData(
-        data,
-        message
-      ) {
-
-        try {
-
-          selectedClassIds = [];
-
-          applyBookingData(data);
-
-
-          if (
-            successMessageFunction
-          ) {
-
-            showStatus(
-              successMessageFunction(
-                data
-              ),
-              "success"
-            );
-
-          } else {
-
-            showStatus(
-              message ||
-              "操作完成",
-              "success"
-            );
-
-          }
-
-        } catch (error) {
-
-          console.error(error);
-
-          showStatus(
-            error.message ||
-            "更新畫面失敗",
-            "error"
-          );
-
-        } finally {
-
-          finish();
-
-        }
-
-      }
-
-
-      function syncAfterAction() {
-
-        if (finished) {
-          return;
-        }
-
-
-        /*
-         * 先停止原本 action callback 的等待。
-         * 後端寫入通常已經完成，
-         * 接著直接讀最新課程。
-         */
-
-        cleanupJsonp(
-          callbackName,
-          script
-        );
-
-
-        refreshClassesSilently(
-          function(data) {
-
-            if (finished) {
-              return;
-            }
-
-
-            finishWithData(
-              data,
-              successMessage
-            );
-
-          },
-          function(error) {
-
-            console.error(
-              "第一次同步失敗：",
-              error
-            );
-
-
-            /*
-             * 再給一次短暫重試，
-             * 避免 Google Sheet 剛寫完時
-             * 第一次讀取還沒同步。
-             */
-
-            setTimeout(
-              function() {
-
-                if (finished) {
-                  return;
-                }
-
-
-                refreshClassesSilently(
-                  function(data) {
-
-                    if (finished) {
-                      return;
-                    }
-
-
-                    finishWithData(
-                      data,
-                      successMessage
-                    );
-
-                  },
-                  function(secondError) {
-
-                    console.error(
-                      "第二次同步失敗：",
-                      secondError
-                    );
-
-
-                    finish();
-
-
-                    showStatus(
-                      "後端可能已完成，但目前無法更新畫面，請重新開啟課程預約確認。",
-                      "error"
-                    );
-
-                  }
-                );
-
-              },
-              800
-            );
-
-          }
-        );
-
-      }
-
-
-      window[callbackName] =
-        function(response) {
-
-          try {
-
-            if (!response) {
-
-              throw new Error(
-                "GAS 沒有回傳資料"
-              );
-
-            }
-
-
-            if (!response.success) {
-
-              throw new Error(
-                response.message ||
-                "操作失敗"
-              );
-
-            }
-
-
-            const data =
-              response.data;
-
-
-            finishWithData(
-              data,
-              successMessage
-            );
-
-
-          } catch (error) {
-
-            console.error(error);
-
-            finish();
-
-
-            showStatus(
-              error.message ||
-              "操作失敗",
-              "error"
-            );
-
-          }
-
-        };
-
-
-      script.onerror =
-        function() {
-
-          /*
-           * JSONP 連線錯誤不直接判定後端失敗。
-           * 因為後端可能已經完成寫入。
-           */
-
-          syncAfterAction();
-
-        };
-
-
-      let url =
-        GAS_URL +
-        "?callback=" +
-        encodeURIComponent(
-          callbackName
-        ) +
-        "&action=" +
-        encodeURIComponent(
-          action
-        ) +
-        "&idToken=" +
-        encodeURIComponent(
-          idToken
-        ) +
-        "&_t=" +
-        Date.now();
-
-
-      Object.keys(
-        params || {}
-      ).forEach(
-        function(key) {
-
-          url +=
-            "&" +
-            encodeURIComponent(
-              key
-            ) +
-            "=" +
-            encodeURIComponent(
-              params[key]
-            );
-
-        }
-      );
-
-
-      script.src = url;
-
-
-      document.body.appendChild(
-        script
-      );
-
-
-      /*
-       * 重要：
-       *
-       * 不再等 8 秒。
-       *
-       * 1.2 秒沒有 callback，
-       * 就直接讀最新課程。
-       */
-
-      fallbackTimer =
-        setTimeout(
-          function() {
-
-            if (finished) {
-              return;
-            }
-
-
-            syncAfterAction();
-
-          },
-          1200
-        );
-    }
+  /*
+   * 自己預約：
+   *
+   * 只有所有選取課程
+   * 都還沒有自己的預約
+   * 才可以按
+   */
+
+  document
+    .getElementById(
+      "selfButton"
+    )
+    .disabled =
+      count === 0 ||
+      isSubmitting ||
+      !canSelfBook;
+
+
+  /*
+   * 幫朋友預約：
+   *
+   * 只要有選課就可以
+   */
+
+  document
+    .getElementById(
+      "guestButton"
+    )
+    .disabled =
+      count === 0 ||
+      isSubmitting;
+
+}
 
 
     /*
@@ -1899,13 +1597,16 @@
         isSubmitting ||
         !selectedClassIds.length
       ) {
-
         return;
       }
 
 
-      const ids =
-        selectedClassIds.slice();
+      const ids = Array.from(new Set(selectedClassIds.map(String)));
+
+      if (ids.length === 0 || ids.length > 31) {
+        showStatus("選擇的課程數量不合法。", "error");
+        return;
+      }
 
 
       if (
@@ -1920,14 +1621,173 @@
       }
 
 
-      runBookingAction(
-        "submitBookings",
-        {
-          selectedClassIds:
-            JSON.stringify(ids)
-        },
-        "預約處理中，請稍候...",
-        "預約完成"
+      isSubmitting = true;
+
+      showLoading(
+        "預約處理中，請稍候..."
+      );
+
+      updateBottomBar();
+
+
+      const callbackName =
+        createSafeCallbackName("gasSubmitCallback_");
+
+
+      const script =
+        document.createElement(
+          "script"
+        );
+
+      script.referrerPolicy = "no-referrer";
+
+
+      let finished = false;
+
+
+      function finish() {
+
+        if (finished) {
+          return;
+        }
+
+        finished = true;
+
+        isSubmitting = false;
+
+        hideLoading();
+
+        updateBottomBar();
+
+        cleanupJsonp(
+          callbackName,
+          script
+        );
+      }
+
+
+      window[callbackName] =
+        function(response) {
+
+          try {
+
+            if (!response) {
+              throw new Error(
+                "GAS 沒有回傳資料"
+              );
+            }
+
+
+            if (!response.success) {
+              throw new Error(
+                response.message ||
+                "預約失敗"
+              );
+            }
+
+
+            const data =
+              response.data;
+
+
+            /*
+             * =========================
+             * 直接使用預約 API 回傳的
+             * 最新課程資料
+             *
+             * 不再另外呼叫 loadClasses()
+             *
+             * 原因：
+             * submitSelectedBookings()
+             * 已經在後端完成寫入後，
+             * 回傳最新的 classes。
+             *
+             * 如果再立刻呼叫 loadClasses()
+             * 可能會短暫讀到尚未同步完成的
+             * 舊資料，造成：
+             *
+             * 1 / 8
+             * ↓
+             * 0 / 8
+             * ↓
+             * 1 / 8
+             *
+             * 現在直接使用這次預約 API
+             * 回傳的 classes，就不會閃回 0 / 8。
+             * =========================
+             */
+
+            classes =
+              data.classes || [];
+
+
+            selectedClassIds = [];
+
+
+            renderClasses();
+
+            updateBottomBar();
+
+
+            showStatus(
+              "預約完成",
+              "success"
+            );
+
+
+          } catch (error) {
+
+            console.error(error);
+
+            showStatus(
+              error.message ||
+              "預約失敗",
+              "error"
+            );
+
+          } finally {
+
+            finish();
+
+          }
+
+        };
+
+
+      script.src =
+        GAS_URL +
+        "?callback=" +
+        encodeURIComponent(
+          callbackName
+        ) +
+        "&action=submitBookings" +
+        "&idToken=" +
+        encodeURIComponent(
+          idToken
+        ) +
+        "&selectedClassIds=" +
+        encodeURIComponent(
+          JSON.stringify(ids)
+        ) +
+        "&_ts=" +
+        Date.now();
+
+
+      script.onerror =
+        function() {
+
+          showStatus(
+            "預約系統連線失敗。",
+            "error"
+          );
+
+          finish();
+
+        };
+
+
+      document.body.appendChild(
+        script
       );
     }
 
@@ -1964,18 +1824,15 @@
           "flex";
 
 
-      setTimeout(
-        function() {
+      setTimeout(function() {
 
-          document
-            .getElementById(
-              "guestNameInput"
-            )
-            .focus();
+        document
+          .getElementById(
+            "guestNameInput"
+          )
+          .focus();
 
-        },
-        100
-      );
+      }, 100);
     }
 
 
@@ -1989,12 +1846,6 @@
           "none";
     }
 
-
-    /*
-     * ==========================
-     * 幫朋友預約
-     * ==========================
-     */
 
     function confirmGuestBooking() {
 
@@ -2022,9 +1873,7 @@
       }
 
 
-      if (
-        guestName.length > 30
-      ) {
+      if (guestName.length > 30) {
 
         alert(
           "姓名最多 30 個字"
@@ -2034,62 +1883,183 @@
       }
 
 
-      if (
-        !selectedClassIds.length
-      ) {
+      const ids = Array.from(new Set(selectedClassIds.map(String)));
 
+      if (ids.length === 0 || ids.length > 31) {
+        showStatus("選擇的課程數量不合法。", "error");
         return;
       }
-
-
-      const ids =
-        selectedClassIds.slice();
 
 
       closeGuestModal();
 
 
-      runBookingAction(
-        "submitGuestBookings",
-        {
-          guestName:
-            guestName,
+      isSubmitting = true;
 
-          selectedClassIds:
-            JSON.stringify(ids)
-        },
+      showLoading(
         "正在幫「" +
         guestName +
-        "」預約，請稍候...",
-        "代訂完成",
-        function(data) {
+        "」預約，請稍候..."
+      );
 
-          const successCount =
-            (data.results || [])
-              .filter(
-                function(r) {
+      updateBottomBar();
+
+
+      const callbackName =
+        createSafeCallbackName("gasGuestCallback_");
+
+
+      const script =
+        document.createElement(
+          "script"
+        );
+
+      script.referrerPolicy = "no-referrer";
+
+
+      let finished = false;
+
+
+      function finish() {
+
+        if (finished) {
+          return;
+        }
+
+        finished = true;
+
+        isSubmitting = false;
+
+        hideLoading();
+
+        updateBottomBar();
+
+        cleanupJsonp(
+          callbackName,
+          script
+        );
+      }
+
+
+      window[callbackName] =
+        function(response) {
+
+          try {
+
+            if (!response) {
+
+              throw new Error(
+                "GAS 沒有回傳資料"
+              );
+            }
+
+
+            if (!response.success) {
+
+              throw new Error(
+                response.message ||
+                "代訂失敗"
+              );
+            }
+
+
+            const data =
+              response.data;
+
+
+            classes =
+              data.classes || [];
+
+
+            selectedClassIds = [];
+
+
+            renderClasses();
+
+            updateBottomBar();
+
+
+            const successCount =
+              (data.results || [])
+                .filter(function(r) {
                   return r.success;
-                }
-              )
-              .length;
+                })
+                .length;
 
 
-          return (
-            "已幫「" +
-            guestName +
-            "」預約 " +
-            successCount +
-            " 堂課"
+            showStatus(
+              "已幫「" +
+              guestName +
+              "」預約 " +
+              successCount +
+              " 堂課",
+              "success"
+            );
+
+
+          } catch (error) {
+
+            console.error(error);
+
+            showStatus(
+              error.message ||
+              "代訂失敗",
+              "error"
+            );
+
+          } finally {
+
+            finish();
+          }
+
+        };
+
+
+      script.src =
+        GAS_URL +
+        "?callback=" +
+        encodeURIComponent(
+          callbackName
+        ) +
+        "&action=submitGuestBookings" +
+        "&idToken=" +
+        encodeURIComponent(
+          idToken
+        ) +
+        "&guestName=" +
+        encodeURIComponent(
+          guestName
+        ) +
+        "&selectedClassIds=" +
+        encodeURIComponent(
+          JSON.stringify(ids)
+        ) +
+        "&_ts=" +
+        Date.now();
+
+
+      script.onerror =
+        function() {
+
+          showStatus(
+            "代訂系統連線失敗。",
+            "error"
           );
 
-        }
+          finish();
+
+        };
+
+
+      document.body.appendChild(
+        script
       );
     }
 
 
     /*
      * ==========================
-     * 取消：共用
+     * 取消預約
      * ==========================
      */
 
@@ -2121,63 +2091,149 @@
       }
 
 
-      runBookingAction(
-        "cancelBookingById",
-        {
-          bookingId:
-            bookingId
-        },
-        "取消預約處理中，請稍候...",
-        "已取消「" +
-        name +
-        "」的預約"
+      isSubmitting = true;
+
+      showLoading(
+        "取消預約處理中，請稍候..."
       );
-    }
+
+      updateBottomBar();
 
 
-    /*
-     * 舊資料沒有 bookingId 時，
-     * 自己的預約仍可透過 classId 取消。
-     */
+      const callbackName =
+        createSafeCallbackName("gasCancelCallback_");
 
-    function cancelMyClassBooking(
-      classId,
-      date,
-      time,
-      name
-    ) {
 
-      if (isSubmitting) {
-        return;
+      const script =
+        document.createElement(
+          "script"
+        );
+
+      script.referrerPolicy = "no-referrer";
+
+
+      let finished = false;
+
+
+      function finish() {
+
+        if (finished) {
+          return;
+        }
+
+        finished = true;
+
+        isSubmitting = false;
+
+        hideLoading();
+
+        updateBottomBar();
+
+        cleanupJsonp(
+          callbackName,
+          script
+        );
       }
 
 
-      if (
-        !confirm(
-          "確定要取消「" +
-          name +
-          "」在 " +
-          date +
-          " " +
-          time +
-          " 的預約嗎？"
-        )
-      ) {
+      window[callbackName] =
+        function(response) {
 
-        return;
-      }
+          try {
+
+            if (!response) {
+
+              throw new Error(
+                "GAS 沒有回傳資料"
+              );
+            }
 
 
-      runBookingAction(
-        "cancelBooking",
-        {
-          classId:
-            classId
-        },
-        "取消預約處理中，請稍候...",
-        "已取消「" +
-        name +
-        "」的預約"
+            if (!response.success) {
+
+              throw new Error(
+                response.message ||
+                "取消失敗"
+              );
+            }
+
+
+            const data =
+              response.data;
+
+
+            classes =
+              data.classes || [];
+
+
+            selectedClassIds = [];
+
+
+            renderClasses();
+
+            updateBottomBar();
+
+
+            showStatus(
+              "已取消「" +
+              name +
+              "」的預約",
+              "success"
+            );
+
+
+          } catch (error) {
+
+            console.error(error);
+
+            showStatus(
+              error.message ||
+              "取消失敗",
+              "error"
+            );
+
+          } finally {
+
+            finish();
+          }
+
+        };
+
+
+      script.src =
+        GAS_URL +
+        "?callback=" +
+        encodeURIComponent(
+          callbackName
+        ) +
+        "&action=cancelBookingById" +
+        "&idToken=" +
+        encodeURIComponent(
+          idToken
+        ) +
+        "&bookingId=" +
+        encodeURIComponent(
+          bookingId
+        ) +
+        "&_ts=" +
+        Date.now();
+
+
+      script.onerror =
+        function() {
+
+          showStatus(
+            "取消系統連線失敗。",
+            "error"
+          );
+
+          finish();
+
+        };
+
+
+      document.body.appendChild(
+        script
       );
     }
 
