@@ -846,10 +846,10 @@
 
       const myBookings =
         cls.myBookings || [];
-
-
+    
       const hasMyBooking =
-        myBookings.length > 0;
+        myBookings.length > 0 ||
+        cls.bookedByMe === true;
 
 
       const selected =
@@ -1004,104 +1004,352 @@
        * 我的預約
        */
 
-      if (myBookings.length) {
+/*
+ * 我的預約
+ */
 
-        const myBox =
+if (myBookings.length) {
+
+  const myBox =
+    document.createElement(
+      "div"
+    );
+
+  myBox.className =
+    "my-bookings";
+
+
+  myBookings.forEach(
+    function(booking) {
+
+      const item =
+        document.createElement(
+          "div"
+        );
+
+      item.className =
+        "my-booking-item";
+
+
+      const name =
+        document.createElement(
+          "div"
+        );
+
+      name.className =
+        "my-booking-name";
+
+      name.textContent =
+        booking.name;
+
+
+      // =========================
+      // 幫朋友預約
+      // =========================
+
+      if (
+        booking.isGuest
+      ) {
+
+        const label =
           document.createElement(
-            "div"
+            "span"
           );
 
-        myBox.className =
-          "my-bookings";
+        label.className =
+          "guest-label";
+
+        label.textContent =
+          "（代訂）";
+
+        name.appendChild(
+          label
+        );
+
+      }
 
 
-        myBookings.forEach(
-          function(booking) {
+      // =========================
+      // 取消按鈕
+      // =========================
 
-            const item =
-              document.createElement(
-                "div"
-              );
+      const cancel =
+        document.createElement(
+          "button"
+        );
 
-            item.className =
-              "my-booking-item";
+      cancel.className =
+        "cancel-button";
 
-
-            const name =
-              document.createElement(
-                "div"
-              );
-
-            name.className =
-              "my-booking-name";
-
-            name.textContent =
-              booking.name;
+      cancel.textContent =
+        "取消";
 
 
-            if (
-              booking.isGuest
-            ) {
+      cancel.addEventListener(
+        "click",
+        function(event) {
 
-              const label =
-                document.createElement(
-                  "span"
-                );
+          event.stopPropagation();
 
-              label.className =
-                "guest-label";
+          cancelBookingById(
+            booking.bookingId,
+            cls.date,
+            cls.time,
+            booking.name
+          );
 
-              label.textContent =
-                "（代訂）";
+        }
+      );
 
-              name.appendChild(
-                label
+
+      item.appendChild(name);
+
+      item.appendChild(cancel);
+
+      myBox.appendChild(item);
+
+    }
+  );
+
+
+  card.appendChild(myBox);
+
+
+} else if (
+  cls.bookedByMe === true
+) {
+
+  /*
+   * =========================
+   * 自己預約
+   *
+   * 如果後端只有回傳
+   * bookedByMe=true
+   * 但沒有 myBookings，
+   * 仍然提供取消按鈕。
+   * =========================
+   */
+
+  const myBox =
+    document.createElement(
+      "div"
+    );
+
+  myBox.className =
+    "my-bookings";
+
+
+  const item =
+    document.createElement(
+      "div"
+    );
+
+  item.className =
+    "my-booking-item";
+
+
+  const name =
+    document.createElement(
+      "div"
+    );
+
+  name.className =
+    "my-booking-name";
+
+  name.textContent =
+    "我的預約";
+
+
+  const cancel =
+    document.createElement(
+      "button"
+    );
+
+  cancel.className =
+    "cancel-button";
+
+  cancel.textContent =
+    "取消";
+
+
+  cancel.addEventListener(
+    "click",
+    function(event) {
+
+      event.stopPropagation();
+
+
+      if (isSubmitting) {
+        return;
+      }
+
+
+      if (
+        !confirm(
+          "確定要取消「" +
+          cls.date +
+          " " +
+          cls.time +
+          "」的預約嗎？"
+        )
+      ) {
+        return;
+      }
+
+
+      isSubmitting = true;
+
+      showLoading(
+        "取消預約處理中，請稍候..."
+      );
+
+      updateBottomBar();
+
+
+      const callbackName =
+        "gasCancelCallback_" +
+        Date.now();
+
+
+      const script =
+        document.createElement(
+          "script"
+        );
+
+
+      let finished = false;
+
+
+      function finish() {
+
+        if (finished) {
+          return;
+        }
+
+        finished = true;
+
+        isSubmitting = false;
+
+        hideLoading();
+
+        updateBottomBar();
+
+        cleanupJsonp(
+          callbackName,
+          script
+        );
+
+      }
+
+
+      window[callbackName] =
+        function(response) {
+
+          try {
+
+            if (!response) {
+              throw new Error(
+                "GAS 沒有回傳資料"
               );
             }
 
 
-            const cancel =
-              document.createElement(
-                "button"
+            if (!response.success) {
+
+              throw new Error(
+                response.message ||
+                "取消失敗"
               );
 
-            cancel.className =
-              "cancel-button";
-
-            cancel.textContent =
-              "取消";
+            }
 
 
-            cancel.addEventListener(
-              "click",
-              function(event) {
+            const data =
+              response.data;
 
-                event.stopPropagation();
+            classes =
+              data.classes || [];
 
-                cancelBookingById(
-                  booking.bookingId,
-                  cls.date,
-                  cls.time,
-                  booking.name
-                );
+            selectedClassIds = [];
 
-              }
+            renderClasses();
+
+            updateBottomBar();
+
+
+            showStatus(
+              "已取消 " +
+              cls.date +
+              " 的預約",
+              "success"
             );
 
 
-            item.appendChild(name);
+          } catch (error) {
 
-            item.appendChild(cancel);
+            console.error(error);
 
-            myBox.appendChild(item);
+            showStatus(
+              error.message ||
+              "取消失敗",
+              "error"
+            );
+
+          } finally {
+
+            finish();
 
           }
+
+        };
+
+
+      script.src =
+        GAS_URL +
+        "?callback=" +
+        encodeURIComponent(
+          callbackName
+        ) +
+        "&action=cancelBooking" +
+        "&idToken=" +
+        encodeURIComponent(
+          idToken
+        ) +
+        "&classId=" +
+        encodeURIComponent(
+          cls.classId
         );
 
 
-        card.appendChild(myBox);
-      }
+      script.onerror =
+        function() {
 
+          showStatus(
+            "取消系統連線失敗。",
+            "error"
+          );
+
+          finish();
+
+        };
+
+
+      document.body.appendChild(
+        script
+      );
+
+    }
+  );
+
+
+  item.appendChild(name);
+
+  item.appendChild(cancel);
+
+  myBox.appendChild(item);
+
+  card.appendChild(myBox);
+}
 
       /*
        * 可以選擇：
