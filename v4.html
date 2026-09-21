@@ -8,7 +8,7 @@
     content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
   >
 
-  <title>課程預約</title>
+  <title>Free Life Nancy的械式皮拉提斯課程預約小工具</title>
 
   <!-- LINE LIFF SDK -->
   <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
@@ -357,7 +357,7 @@
     <div class="header">
 
       <div class="title">
-        課程預約
+        Free Life Nancy的械式皮拉提斯課程預約小工具
       </div>
 
       <div id="welcomeText" class="welcome">
@@ -465,11 +465,13 @@
 
         if (!liff.isLoggedIn()) {
 
-          liff.login();
-
+          liff.login({
+            redirectUri: window.location.href
+          });
+        
           return;
         }
-
+        
         idToken = liff.getIDToken();
 
         if (!idToken) {
