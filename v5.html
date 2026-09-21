@@ -1610,12 +1610,6 @@ if (!isFull) {
 
       let finished = false;
 
-      // 預約成功後會再呼叫 loadClasses()
-      // 重新取得最新課程。
-      // loadClasses() 自己會負責 loading 的顯示與關閉，
-      // 因此這裡不能再把 loading 提前關掉。
-      let reloadingClasses = false;
-
 
       function finish() {
 
@@ -1627,9 +1621,7 @@ if (!isFull) {
 
         isSubmitting = false;
 
-        if (!reloadingClasses) {
-          hideLoading();
-        }
+        hideLoading();
 
         updateBottomBar();
 
@@ -1641,76 +1633,91 @@ if (!isFull) {
 
 
       window[callbackName] =
-  function(response) {
+        function(response) {
 
-    try {
+          try {
 
-      if (!response) {
-        throw new Error(
-          "GAS 沒有回傳資料"
-        );
-      }
-
-
-      if (!response.success) {
-        throw new Error(
-          response.message ||
-          "預約失敗"
-        );
-      }
+            if (!response) {
+              throw new Error(
+                "GAS 沒有回傳資料"
+              );
+            }
 
 
-      // =========================
-      // 預約成功
-      // =========================
-
-      selectedClassIds = [];
-
-
-      // =========================
-      // 重新從 GAS 取得最新課程
-      //
-      // 這裡不要直接使用
-      // submitSelectedBookings 回傳的 classes
-      //
-      // 因為取消按鈕需要 myBookings。
-      //
-      // loadClasses() 會自己顯示 loading，
-      // 並在最新課程取得完成後關閉 loading。
-      // =========================
-
-      reloadingClasses = true;
-
-      showLoading(
-        "預約成功，正在更新課程資料，請稍候..."
-      );
-
-      loadClasses();
+            if (!response.success) {
+              throw new Error(
+                response.message ||
+                "預約失敗"
+              );
+            }
 
 
-      showStatus(
-        "預約成功，正在更新課程資料...",
-        "success"
-      );
+            const data =
+              response.data;
 
 
-    } catch (error) {
+            /*
+             * =========================
+             * 直接使用預約 API 回傳的
+             * 最新課程資料
+             *
+             * 不再另外呼叫 loadClasses()
+             *
+             * 原因：
+             * submitSelectedBookings()
+             * 已經在後端完成寫入後，
+             * 回傳最新的 classes。
+             *
+             * 如果再立刻呼叫 loadClasses()
+             * 可能會短暫讀到尚未同步完成的
+             * 舊資料，造成：
+             *
+             * 1 / 8
+             * ↓
+             * 0 / 8
+             * ↓
+             * 1 / 8
+             *
+             * 現在直接使用這次預約 API
+             * 回傳的 classes，就不會閃回 0 / 8。
+             * =========================
+             */
 
-      console.error(error);
+            classes =
+              data.classes || [];
 
-      showStatus(
-        error.message ||
-        "預約失敗",
-        "error"
-      );
 
-    } finally {
+            selectedClassIds = [];
 
-      finish();
 
-    }
+            renderClasses();
 
-  };
+            updateBottomBar();
+
+
+            showStatus(
+              "預約完成",
+              "success"
+            );
+
+
+          } catch (error) {
+
+            console.error(error);
+
+            showStatus(
+              error.message ||
+              "預約失敗",
+              "error"
+            );
+
+          } finally {
+
+            finish();
+
+          }
+
+        };
 
 
       script.src =
