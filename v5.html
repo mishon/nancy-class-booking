@@ -525,55 +525,54 @@
 
     async function init() {
 
-      try {
+  try {
 
-        showLoading(
-          "正在初始化，請稍候..."
-        );
+    showLoading(
+      "正在初始化，請稍候..."
+    );
 
-        await liff.init({
-          liffId: LIFF_ID
-        });
+    await liff.init({
+      liffId: LIFF_ID,
+      withLoginOnExternalBrowser: true
+    });
 
+    console.log("LIFF 初始化完成");
+    console.log("isInClient =", liff.isInClient());
+    console.log("isLoggedIn =", liff.isLoggedIn());
 
-        if (!liff.isLoggedIn()) {
+    if (!liff.isLoggedIn()) {
 
-          liff.login({
-            redirectUri:
-              window.location.href
-          });
-
-          return;
-        }
-
-
-        idToken =
-          liff.getIDToken();
-
-
-        if (!idToken) {
-
-          throw new Error(
-            "無法取得 LINE 身分資訊"
-          );
-        }
-
-
-        loadClasses();
-
-      } catch (error) {
-
-        console.error(error);
-
-        hideLoading();
-
-        showStatus(
-          error.message ||
-          "初始化失敗",
-          "error"
-        );
-      }
+      throw new Error(
+        "LINE 尚未登入，請重新從 LINE 開啟課程預約。"
+      );
     }
+
+    idToken = liff.getIDToken();
+
+    if (!idToken) {
+
+      throw new Error(
+        "無法取得 LINE 身分資訊"
+      );
+    }
+
+    console.log("已取得 LINE ID Token");
+
+    loadClasses();
+
+  } catch (error) {
+
+    console.error("LIFF 初始化失敗:", error);
+
+    hideLoading();
+
+    showStatus(
+      error.message ||
+      "初始化失敗",
+      "error"
+    );
+  }
+}
 
 
     function showLoading(message) {
