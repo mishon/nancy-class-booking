@@ -837,6 +837,13 @@
         };
 
 
+      // GAS JSONP 若超過 20 秒沒有回應，不再讓 Loading 永遠卡住。
+      script._timeout = setTimeout(function() {
+        if (finished) return;
+        showStatus("預約系統回應逾時，請重新開啟課程預約。", "error");
+        finish();
+      }, 20000);
+
       document.body.appendChild(
         script
       );
@@ -2223,26 +2230,40 @@ if (!isFull) {
             }
 
 
-            const data =
-              response.data;
+            const data = response.data || {};
 
+            // 後端取消成功後只回傳 bookingId/name，
+            // 前端直接更新目前畫面，不再重新取得整份課程資料。
+            classes = classes.map(function(item) {
+              const next = Object.assign({}, item);
+              const list = Array.isArray(next.myBookings)
+                ? next.myBookings.slice()
+                : [];
 
-            classes =
-              data.classes || [];
+              const removed = list.some(function(b) {
+                return String(b.bookingId) === String(data.bookingId);
+              });
 
+              if (removed) {
+                next.myBookings = list.filter(function(b) {
+                  return String(b.bookingId) !== String(data.bookingId);
+                });
+                next.bookedByMe = next.myBookings.length > 0;
+                next.count = Math.max(0, Number(next.count || 0) - 1);
+                next.names = (next.names || []).slice();
+                const idx = next.names.indexOf(data.name || name);
+                if (idx >= 0) next.names.splice(idx, 1);
+              }
+
+              return next;
+            });
 
             selectedClassIds = [];
-
-
             renderClasses();
-
             updateBottomBar();
 
-
             showStatus(
-              "已取消「" +
-              name +
-              "」的預約",
+              "已取消「" + name + "」的預約",
               "success"
             );
 
@@ -2309,13 +2330,9 @@ if (!isFull) {
           );
 
           showStatus(
-            "系統回應較慢，正在確認取消結果...",
-            "info"
+            "取消請求回應逾時，請重新開啟課程確認狀態。",
+            "error"
           );
-
-          setTimeout(function() {
-            loadClasses();
-          }, 1200);
 
         };
 
@@ -2345,6 +2362,11 @@ if (!isFull) {
 
       }
 
+
+      if (script && script._timeout) {
+        clearTimeout(script._timeout);
+        script._timeout = null;
+      }
 
       if (
         script &&
