@@ -1252,17 +1252,8 @@
             }
 
 
-            // 線下登記仍算會員的課程，
-            // 但不能透過 LIFF 取消。
-            if (booking.isOffline) {
-
-              item.appendChild(name);
-              myBox.appendChild(item);
-              return;
-
-            }
-
-
+            // 線下登記仍算會員本人的預約。
+            // 顯示「線下登記」，但本人仍然可以取消。
             const cancel =
               document.createElement(
                 "button"
