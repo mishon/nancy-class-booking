@@ -2268,12 +2268,32 @@ if (!isFull) {
       script.onerror =
         function() {
 
-          showStatus(
-            "取消系統連線失敗。",
-            "error"
+          /*
+           * GAS 可能已經完成取消寫入，
+           * 但 JSONP 回應在瀏覽器端被判定為連線錯誤。
+           *
+           * 不要直接顯示「取消失敗」，
+           * 先重新取得最新課程資料。
+           * 如果後端已經寫入 CANCELLED，
+           * 重新載入後畫面就會反映最新狀態。
+           */
+          console.warn(
+            "取消 API 回應異常，重新取得最新課程資料確認狀態。",
+            bookingId
           );
 
-          finish();
+          isSubmitting = false;
+          hideLoading();
+          cleanupJsonp(
+            callbackName,
+            script
+          );
+
+          showLoading(
+            "正在確認取消結果，請稍候..."
+          );
+
+          loadClasses();
 
         };
 
