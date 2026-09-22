@@ -1637,41 +1637,43 @@
       }
 
       window[callbackName] = function(response) {
-        if (finished) return;
-
-        try {
-          if (!response) {
-            throw new Error("GAS 沒有回傳資料");
-          }
-
-          if (!response.success) {
-            throw new Error(
-              response.message || "操作失敗"
-            );
-          }
-
-          const data = response.data || {};
-
-          /*
-           * 後端已明確回 success：
-           * 不再等待第二個 API 來「確認」成功。
-           */
-          showSuccess(data);
-          finish();
-          selectedClassIds = [];
-          updateBottomBar();
-
-          refreshInBackground();
-
-        } catch (error) {
-          console.error(error);
-          finish();
-          showStatus(
-            error.message || "操作失敗",
-            "error"
+      if (finished) return;
+    
+      try {
+        if (!response) {
+          throw new Error("GAS 沒有回傳資料");
+        }
+    
+        if (!response.success) {
+          throw new Error(
+            response.message || "操作失敗"
           );
         }
-      };
+    
+        const data = response.data || {};
+    
+        // ★★★ 新增：後端已經回傳最新課程資料，
+        // 直接更新 LIFF 畫面，不必等待第二次 API。
+        if (data.classes && Array.isArray(data.classes)) {
+          applyBookingData(data);
+        }
+    
+        showSuccess(data);
+        finish();
+        selectedClassIds = [];
+        updateBottomBar();
+    
+        refreshInBackground();
+    
+      } catch (error) {
+        console.error(error);
+        finish();
+        showStatus(
+          error.message || "操作失敗",
+          "error"
+        );
+      }
+    };
 
       /*
        * mutation 的 JSONP 如果沒有 callback，
