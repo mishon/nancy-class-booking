@@ -1,4 +1,10 @@
 <!-- =====================================================
+ LIFF STABLE FINAL v1.1
+ 以可正常取得課程的 Stable 版為基準。
+ 本版只修 JSONP mutation 失敗時誤顯示「成功」。
+ ===================================================== -->
+
+<!-- =====================================================
  LIFF STABLE FINAL
  以 V12 的正常課程取得 / JSONP / UI 為基準。
  不修改通訊核心。
@@ -16,7 +22,7 @@
     content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
   >
 
-  <title>Free Life Nancy 的械式皮拉提斯課程預約小工具</title>
+  <title>V5 Free Life Nancy的械式皮拉提斯課程預約小工具</title>
 
   <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
 
@@ -445,7 +451,7 @@
   <div class="container">
 
     <div class="title">
-      Free Life Nancy 的械式皮拉提斯課程預約小工具
+      V5 Free Life Nancy的械式皮拉提斯課程預約小工具
     </div>
 
     <div id="welcomeText" class="welcome">
@@ -1535,6 +1541,53 @@
         );
       }
 
+      /*
+       * JSONP 沒有回來時，不能直接顯示「成功」。
+       * 因為後端可能成功，也可能失敗。
+       * 先同步畫面，再明確告知使用者「無法確認」。
+       */
+      function refreshAfterUnknownResult() {
+
+        if (refreshStarted || finished) {
+          return;
+        }
+
+        refreshStarted = true;
+
+        refreshClassesSilently(
+          function(latestData) {
+
+            if (finished) {
+              return;
+            }
+
+            selectedClassIds = [];
+            applyBookingData(latestData);
+            finish();
+
+            showStatus(
+              "系統沒有收到操作回應，已重新整理課程資料；請確認最新狀態。",
+              "info"
+            );
+
+          },
+          function(error) {
+
+            console.error(
+              "操作結果確認失敗：",
+              error
+            );
+
+            finish();
+
+            showStatus(
+              "無法確認這次操作結果，請重新整理後再確認。",
+              "error"
+            );
+          }
+        );
+      }
+
       window[callbackName] = function(response) {
         if (finished) return;
 
@@ -1554,8 +1607,9 @@
       };
 
       script.onerror = function() {
-        // JSONP 失敗時，後端可能已經寫入；直接背景同步一次。
-        if (!finished) refreshAfterSuccess({});
+        if (!finished) {
+          refreshAfterUnknownResult();
+        }
       };
 
       let url =
@@ -1575,7 +1629,9 @@
       // 2.5 秒沒有 JSONP callback 就開始背景同步。
       // 不再讓使用者一直看到 Loading。
       fallbackTimer = setTimeout(function() {
-        if (!finished) refreshAfterSuccess({});
+        if (!finished) {
+          refreshAfterUnknownResult();
+        }
       }, 2500);
     }
 
