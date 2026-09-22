@@ -101,15 +101,23 @@
       border-color: #1a73e8;
       background: #f4f8ff;
     }
-
-    .class-card.full {
-      background: #f1f1f1;
-      color: #999;
-    }
-
+    
+    /* 已經是自己的預約 */
     .class-card.has-my-booking {
       border-color: #4caf50;
       background: #f5fff6;
+    }
+    
+    /* 已經是自己的預約，又被選取＝準備幫朋友預約 */
+    .class-card.has-my-booking.selected {
+      border-color: #f59e0b;
+      background: #fff8e8;
+      box-shadow: 0 0 0 2px rgba(245, 158, 11, 0.12);
+    }
+    
+    .class-card.full {
+      background: #f1f1f1;
+      color: #999;
     }
 
     .class-header {
@@ -1004,6 +1012,35 @@
         cls.time;
 
       card.appendChild(time);
+      
+      /* 
+       * 選取狀態提示
+       */
+      if (selected) {
+      
+        const selectionLabel =
+          document.createElement("div");
+      
+        selectionLabel.style.marginTop = "10px";
+        selectionLabel.style.fontSize = "13px";
+        selectionLabel.style.fontWeight = "600";
+      
+        if (hasMyBooking) {
+      
+          selectionLabel.style.color = "#f59e0b";
+          selectionLabel.textContent =
+            "🟠 已選取：準備幫朋友預約";
+      
+        } else {
+      
+          selectionLabel.style.color = "#1a73e8";
+          selectionLabel.textContent =
+            "🔵 已選取";
+      
+        }
+      
+        card.appendChild(selectionLabel);
+      }
 
 
       /*
