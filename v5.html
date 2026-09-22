@@ -110,6 +110,13 @@
       background: #f5fff6;
     }
 
+    /* V7：如果同時「已經有我的預約」又被選取，
+       選取狀態必須優先顯示藍色，避免使用者看不出自己選了哪堂。 */
+    .class-card.selected.has-my-booking {
+      border-color: #1a73e8;
+      background: #f4f8ff;
+    }
+
     .class-header {
       display: flex;
       justify-content: space-between;
@@ -989,9 +996,9 @@
 
 
       const selected =
-        selectedClassIds.includes(
-          cls.classId
-        );
+        selectedClassIds.some(function(id) {
+          return String(id) === String(cls.classId);
+        });
 
 
       let cardClass =
@@ -1349,12 +1356,17 @@
         return;
       }
 
+      // 所有 classId 統一成 String，避免
+      // Number("20261014") 與 "20261014" 混用造成選取狀態不同步。
+      const normalizedId =
+        String(classId);
 
       const index =
-        selectedClassIds.indexOf(
-          classId
+        selectedClassIds.findIndex(
+          function(id) {
+            return String(id) === normalizedId;
+          }
         );
-
 
       if (index >= 0) {
 
@@ -1366,11 +1378,15 @@
       } else {
 
         selectedClassIds.push(
-          classId
+          normalizedId
         );
 
       }
 
+      console.log(
+        "【選取課程】selectedClassIds =",
+        selectedClassIds.slice()
+      );
 
       renderClasses();
 
@@ -1899,26 +1915,60 @@
         isSubmitting ||
         !selectedClassIds.length
       ) {
-
         return;
       }
 
-
       const ids =
-        selectedClassIds.slice();
+        Array.from(
+          new Set(
+            selectedClassIds.map(function(id) {
+              return String(id);
+            })
+          )
+        );
 
+      const selectedDateTexts =
+        ids.map(function(classId) {
+
+          const cls =
+            classes.find(function(item) {
+              return String(item.classId) ===
+                String(classId);
+            });
+
+          if (!cls) {
+            return "未知課程(" + classId + ")";
+          }
+
+          return (
+            cls.date +
+            "（" +
+            cls.weekday +
+            "） " +
+            cls.time
+          );
+        });
+
+      console.log(
+        "【自己預約】實際送出 selectedClassIds =",
+        ids
+      );
+
+      console.log(
+        "【自己預約】實際送出課程 =",
+        selectedDateTexts
+      );
 
       if (
         !confirm(
-          "確定要預約所選的 " +
+          "確定要預約以下 " +
           ids.length +
-          " 堂課嗎？"
+          " 堂課嗎？\n\n" +
+          selectedDateTexts.join("\n")
         )
       ) {
-
         return;
       }
-
 
       runBookingAction(
         "submitBookings",
@@ -1927,7 +1977,48 @@
             JSON.stringify(ids)
         },
         "預約處理中，請稍候...",
-        "預約完成"
+        "預約完成",
+        function(data) {
+
+          console.log(
+            "【自己預約】GAS 實際處理 requestedClassIds =",
+            data.requestedClassIds || []
+          );
+
+          console.log(
+            "【自己預約】GAS results =",
+            data.results || []
+          );
+
+          const successDates =
+            (data.results || [])
+              .filter(function(r) {
+                return (
+                  r.status === "BOOKED" ||
+                  r.success === true
+                );
+              })
+              .map(function(r) {
+
+                const cls =
+                  classes.find(function(item) {
+                    return String(item.classId) ===
+                      String(r.classId);
+                  });
+
+                return cls
+                  ? cls.date + "（" + cls.weekday + "）"
+                  : String(r.classId);
+
+              });
+
+          return (
+            successDates.length
+              ? "預約完成：\n" +
+                successDates.join("、")
+              : "沒有新增成功的預約"
+          );
+        }
       );
     }
 
