@@ -703,7 +703,17 @@
     }
 
 
+    function diagClient(label, startMs, extra) {
+      const elapsed = startMs ? Math.round(performance.now() - startMs) : 0;
+      const message = "[LIFF-DIAG] " + label + " | " + elapsed + " ms" + (extra ? " | " + extra : "");
+      console.log(message);
+      return elapsed;
+    }
+
     function loadClasses() {
+
+      const __requestStart = performance.now();
+      diagClient("loadClasses START", __requestStart);
 
       showLoading(
         "正在取得課程資料，請稍候..."
@@ -731,6 +741,7 @@
         }
 
         finished = true;
+        diagClient("loadClasses FINISH", __requestStart);
 
         hideLoading();
 
@@ -743,6 +754,8 @@
 
       window[callbackName] =
         function(response) {
+
+          diagClient("loadClasses CALLBACK RECEIVED", __requestStart);
 
           try {
 
@@ -822,11 +835,16 @@
 
 
       script.src = url;
+      diagClient("loadClasses SCRIPT APPEND", __requestStart);
 
+      script.onload = function() {
+        diagClient("loadClasses SCRIPT ONLOAD", __requestStart);
+      };
 
       script.onerror =
         function() {
 
+          diagClient("loadClasses SCRIPT ERROR", __requestStart);
           showStatus(
             "無法連線到預約系統。",
             "error"
@@ -840,6 +858,7 @@
       // GAS JSONP 若超過 20 秒沒有回應，不再讓 Loading 永遠卡住。
       script._timeout = setTimeout(function() {
         if (finished) return;
+        diagClient("loadClasses TIMEOUT", __requestStart);
         showStatus("預約系統回應逾時，請重新開啟課程預約。", "error");
         finish();
       }, 20000);
@@ -1674,6 +1693,9 @@ if (!isFull) {
       }
 
 
+      const __requestStart = performance.now();
+      diagClient("submitBookings START", __requestStart, "count=" + ids.length);
+
       isSubmitting = true;
 
       showLoading(
@@ -1721,6 +1743,8 @@ if (!isFull) {
 
       window[callbackName] =
         function(response) {
+
+          diagClient("submitBookings CALLBACK RECEIVED", __requestStart);
 
           try {
 
@@ -1826,11 +1850,16 @@ if (!isFull) {
         Date.now();
 
 
+      script.onload = function() {
+        diagClient("submitBookings SCRIPT ONLOAD", __requestStart);
+      };
+
       script.onerror =
         function() {
 
           // GAS 可能已完成寫入，但 JSONP 回應沒有正常回到 LIFF。
           // 不直接判定預約失敗，先重新取得最新課程確認結果。
+          diagClient("submitBookings SCRIPT ERROR", __requestStart);
           console.warn("預約 API 回應異常，正在確認預約結果。");
 
           isSubmitting = false;
@@ -1849,6 +1878,7 @@ if (!isFull) {
         };
 
 
+      diagClient("submitBookings SCRIPT APPEND", __requestStart);
       document.body.appendChild(
         script
       );
@@ -1957,6 +1987,9 @@ if (!isFull) {
       closeGuestModal();
 
 
+      const __requestStart = performance.now();
+      diagClient("submitGuestBookings START", __requestStart, "count=" + ids.length);
+
       isSubmitting = true;
 
       showLoading(
@@ -2006,6 +2039,8 @@ if (!isFull) {
 
       window[callbackName] =
         function(response) {
+
+          diagClient("submitGuestBookings CALLBACK RECEIVED", __requestStart);
 
           try {
 
@@ -2101,10 +2136,15 @@ if (!isFull) {
         Date.now();
 
 
+      script.onload = function() {
+        diagClient("submitGuestBookings SCRIPT ONLOAD", __requestStart);
+      };
+
       script.onerror =
         function() {
 
           // GAS 可能已完成幫朋友預約，但 JSONP 回應沒有正常回來。
+          diagClient("submitGuestBookings SCRIPT ERROR", __requestStart);
           console.warn("代訂 API 回應異常，正在確認代訂結果。");
 
           isSubmitting = false;
@@ -2123,6 +2163,7 @@ if (!isFull) {
         };
 
 
+      diagClient("submitGuestBookings SCRIPT APPEND", __requestStart);
       document.body.appendChild(
         script
       );
@@ -2162,6 +2203,9 @@ if (!isFull) {
         return;
       }
 
+
+      const __requestStart = performance.now();
+      diagClient("cancelBookingById START", __requestStart, "bookingId=" + bookingId);
 
       isSubmitting = true;
 
@@ -2210,6 +2254,8 @@ if (!isFull) {
 
       window[callbackName] =
         function(response) {
+
+          diagClient("cancelBookingById CALLBACK RECEIVED", __requestStart);
 
           try {
 
@@ -2305,6 +2351,10 @@ if (!isFull) {
         Date.now();
 
 
+      script.onload = function() {
+        diagClient("cancelBookingById SCRIPT ONLOAD", __requestStart);
+      };
+
       script.onerror =
         function() {
 
@@ -2317,6 +2367,7 @@ if (!isFull) {
            * 如果後端已經寫入 CANCELLED，
            * 重新載入後畫面就會反映最新狀態。
            */
+          diagClient("cancelBookingById SCRIPT ERROR", __requestStart);
           console.warn(
             "取消 API 回應異常，重新取得最新課程資料確認狀態。",
             bookingId
@@ -2337,6 +2388,7 @@ if (!isFull) {
         };
 
 
+      diagClient("cancelBookingById SCRIPT APPEND", __requestStart);
       document.body.appendChild(
         script
       );
