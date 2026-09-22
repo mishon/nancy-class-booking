@@ -11,7 +11,7 @@
     content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
   >
 
-  <title>V5 Free Life Nancy的械式皮拉提斯課程預約小工具</title>
+  <title>Free Life Nancy 的械式皮拉提斯課程預約小工具</title>
 
   <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
 
@@ -440,7 +440,7 @@
   <div class="container">
 
     <div class="title">
-      V5 Free Life Nancy的械式皮拉提斯課程預約小工具
+      Free Life Nancy 的械式皮拉提斯課程預約小工具
     </div>
 
     <div id="welcomeText" class="welcome">
@@ -519,7 +519,7 @@
 
     // JSONP 最長等待時間。
     // 避免 GAS / LINE 網路異常時 Loading 永遠卡住。
-    const REQUEST_TIMEOUT_MS = 12000;
+    const REQUEST_TIMEOUT_MS = 18000;
 
 
     window.addEventListener(
@@ -599,7 +599,6 @@
           "flex";
     }
 
-
     function hideLoading() {
 
       document
@@ -649,6 +648,19 @@
 
       let finished = false;
 
+      const slowNoticeId =
+        setTimeout(
+          function() {
+            if (!finished) {
+              showStatus(
+                "系統回應較慢，正在努力取得課程資料…",
+                "info"
+              );
+            }
+          },
+          8000
+        );
+
       const timeoutId =
         setTimeout(
           function() {
@@ -658,7 +670,7 @@
             }
 
             showStatus(
-              "取得課程逾時，請重新整理後再試。",
+              "取得課程逾時，請確認網路或稍後重新開啟。",
               "error"
             );
 
@@ -677,6 +689,7 @@
 
         finished = true;
 
+        clearTimeout(slowNoticeId);
         clearTimeout(timeoutId);
 
         hideLoading();
@@ -1317,20 +1330,13 @@
 
 
             const data =
-              response.data;
-
-
-            classes =
-              data.classes || [];
-
+              response.data || {};
 
             selectedClassIds = [];
 
-
-            renderClasses();
-
-            updateBottomBar();
-
+            // 預約成功後重新取得最新課程狀態，
+            // 避免使用舊畫面的人數資料。
+            loadClasses();
 
             showStatus(
               "預約完成",
