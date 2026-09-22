@@ -1822,12 +1822,22 @@ if (!isFull) {
       script.onerror =
         function() {
 
+          // GAS 可能已完成寫入，但 JSONP 回應沒有正常回到 LIFF。
+          // 不直接判定預約失敗，先重新取得最新課程確認結果。
+          console.warn("預約 API 回應異常，正在確認預約結果。");
+
+          isSubmitting = false;
+          hideLoading();
+          cleanupJsonp(callbackName, script);
+
           showStatus(
-            "預約系統連線失敗。",
-            "error"
+            "系統回應較慢，正在確認預約結果...",
+            "info"
           );
 
-          finish();
+          setTimeout(function() {
+            loadClasses();
+          }, 1200);
 
         };
 
@@ -2087,12 +2097,21 @@ if (!isFull) {
       script.onerror =
         function() {
 
+          // GAS 可能已完成幫朋友預約，但 JSONP 回應沒有正常回來。
+          console.warn("代訂 API 回應異常，正在確認代訂結果。");
+
+          isSubmitting = false;
+          hideLoading();
+          cleanupJsonp(callbackName, script);
+
           showStatus(
-            "代訂系統連線失敗。",
-            "error"
+            "系統回應較慢，正在確認代訂結果...",
+            "info"
           );
 
-          finish();
+          setTimeout(function() {
+            loadClasses();
+          }, 1200);
 
         };
 
@@ -2289,11 +2308,14 @@ if (!isFull) {
             script
           );
 
-          showLoading(
-            "正在確認取消結果，請稍候..."
+          showStatus(
+            "系統回應較慢，正在確認取消結果...",
+            "info"
           );
 
-          loadClasses();
+          setTimeout(function() {
+            loadClasses();
+          }, 1200);
 
         };
 
