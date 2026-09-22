@@ -1,10 +1,4 @@
 <!-- =====================================================
- LIFF STABLE FINAL v1.1
- 以可正常取得課程的 Stable 版為基準。
- 本版只修 JSONP mutation 失敗時誤顯示「成功」。
- ===================================================== -->
-
-<!-- =====================================================
  LIFF STABLE FINAL
  以 V12 的正常課程取得 / JSONP / UI 為基準。
  不修改通訊核心。
@@ -22,7 +16,7 @@
     content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
   >
 
-  <title>V5 Free Life Nancy的械式皮拉提斯課程預約小工具</title>
+  <title>Free Life Nancy 的械式皮拉提斯課程預約小工具</title>
 
   <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
 
@@ -451,7 +445,7 @@
   <div class="container">
 
     <div class="title">
-      V5 Free Life Nancy的械式皮拉提斯課程預約小工具
+      Free Life Nancy 的械式皮拉提斯課程預約小工具
     </div>
 
     <div id="welcomeText" class="welcome">
@@ -814,60 +808,132 @@
 
     function fetchBookingData(success, failure) {
 
-      const callbackName =
-        "gasBookingCallback_" + Date.now() + "_" + Math.floor(Math.random() * 100000);
+      /*
+       * LIFF / GAS 使用 JSONP。
+       * 手機版 LINE 內建瀏覽器偶爾會第一次 script request 失敗，
+       * 因此只在「讀取課程」失敗時自動重試一次。
+       * 單次最多等待 6 秒，避免畫面長時間卡住。
+       */
 
-      const script = document.createElement("script");
+      let attempt = 0;
       let finished = false;
-      let timeoutTimer = null;
+      let timer = null;
+      let script = null;
+      let callbackName = null;
 
-      function finish() {
-        if (finished) return;
-        finished = true;
-        if (timeoutTimer) clearTimeout(timeoutTimer);
-        cleanupJsonp(callbackName, script);
+      function cleanup() {
+        if (timer) {
+          clearTimeout(timer);
+          timer = null;
+        }
+
+        if (callbackName) {
+          try {
+            delete window[callbackName];
+          } catch (e) {
+            window[callbackName] = undefined;
+          }
+        }
+
+        if (script && script.parentNode) {
+          script.parentNode.removeChild(script);
+        }
+
+        script = null;
+        callbackName = null;
       }
 
-      window[callbackName] = function(response) {
+      function fail(error) {
+        if (finished) return;
+        finished = true;
+        cleanup();
+        if (failure) failure(error);
+      }
+
+      function request() {
         if (finished) return;
 
-        try {
-          if (!response) throw new Error("GAS 沒有回傳資料");
-          if (!response.success) {
-            throw new Error(response.message || "取得課程失敗");
+        attempt++;
+
+        callbackName =
+          "gasBookingCallback_" +
+          Date.now() +
+          "_" +
+          Math.floor(Math.random() * 100000);
+
+        script = document.createElement("script");
+
+        window[callbackName] = function(response) {
+          if (finished) return;
+
+          try {
+            if (!response) {
+              throw new Error("GAS 沒有回傳資料");
+            }
+
+            if (!response.success) {
+              throw new Error(
+                response.message || "取得課程失敗"
+              );
+            }
+
+            const data = response.data;
+
+            finished = true;
+            cleanup();
+
+            if (success) success(data);
+
+          } catch (error) {
+            fail(error);
+          }
+        };
+
+        script.onerror = function() {
+          if (finished) return;
+
+          cleanup();
+
+          if (attempt < 2) {
+            setTimeout(request, 350);
+            return;
           }
 
-          const data = response.data;
-          finish();
-          if (success) success(data);
+          fail(
+            new Error(
+              "目前無法取得課程資料，請重新開啟課程預約。"
+            )
+          );
+        };
 
-        } catch (error) {
-          finish();
-          if (failure) failure(error);
-        }
-      };
+        script.src =
+          GAS_URL +
+          "?callback=" + encodeURIComponent(callbackName) +
+          "&idToken=" + encodeURIComponent(idToken) +
+          "&_t=" + Date.now();
 
-      script.onerror = function() {
-        finish();
-        if (failure) failure(new Error("無法連線到預約系統。"));
-      };
+        document.body.appendChild(script);
 
-      script.src =
-        GAS_URL +
-        "?callback=" + encodeURIComponent(callbackName) +
-        "&idToken=" + encodeURIComponent(idToken) +
-        "&_t=" + Date.now();
+        timer = setTimeout(function() {
+          if (finished) return;
 
-      document.body.appendChild(script);
+          cleanup();
 
-      // 避免 GAS / JSONP 無回應時永久 Loading。
-      timeoutTimer = setTimeout(function() {
-        if (finished) return;
-        finish();
-        if (failure) failure(new Error("取得課程資料逾時，請重新開啟課程預約。"));
-      }, 8000);
+          if (attempt < 2) {
+            setTimeout(request, 350);
+            return;
+          }
+
+          fail(
+            new Error(
+              "取得課程資料逾時，請重新開啟課程預約。"
+            )
+          );
+        }, 6000);
+      }
+
+      request();
     }
-
 
     /*
      * ------------------------------------------------------------
@@ -1481,135 +1547,173 @@
       updateBottomBar();
 
       const callbackName =
-        "gasActionCallback_" + Date.now() + "_" + Math.floor(Math.random() * 100000);
+        "gasActionCallback_" +
+        Date.now() +
+        "_" +
+        Math.floor(Math.random() * 100000);
 
       const script = document.createElement("script");
       let finished = false;
-      let fallbackTimer = null;
+      let timeoutTimer = null;
       let refreshStarted = false;
+
+      function cleanup() {
+        if (timeoutTimer) {
+          clearTimeout(timeoutTimer);
+          timeoutTimer = null;
+        }
+
+        try {
+          delete window[callbackName];
+        } catch (e) {
+          window[callbackName] = undefined;
+        }
+
+        if (script.parentNode) {
+          script.parentNode.removeChild(script);
+        }
+      }
 
       function finish() {
         if (finished) return;
         finished = true;
-
-        if (fallbackTimer) {
-          clearTimeout(fallbackTimer);
-          fallbackTimer = null;
-        }
-
+        cleanup();
         isSubmitting = false;
         hideLoading();
         updateBottomBar();
-        cleanupJsonp(callbackName, script);
       }
 
-      function showSuccess(message) {
+      function showSuccess(data) {
         if (successMessageFunction) {
           try {
-            showStatus(successMessageFunction(message || {}), "success");
+            showStatus(
+              successMessageFunction(data || {}),
+              "success"
+            );
+            return;
           } catch (e) {
             console.error(e);
-            showStatus(successMessage || "操作完成", "success");
           }
-        } else {
-          showStatus(successMessage || "操作完成", "success");
         }
-      }
 
-      // 後端 mutation 成功後，背景重新取得一次最新課程。
-      // 不顯示第二次 loading；即使同步失敗，也不會把畫面卡死。
-      function refreshAfterSuccess(data) {
-        if (refreshStarted || finished) return;
-        refreshStarted = true;
-
-        refreshClassesSilently(
-          function(latestData) {
-            if (finished) return;
-            selectedClassIds = [];
-            applyBookingData(latestData);
-            showSuccess(data);
-            finish();
-          },
-          function(error) {
-            console.error("操作成功後同步課程失敗：", error);
-
-            // 後端已成功，前端即使暫時無法刷新也必須解除 loading。
-            selectedClassIds = [];
-            finish();
-            showSuccess(data);
-          }
+        showStatus(
+          successMessage || "操作完成",
+          "success"
         );
       }
 
       /*
-       * JSONP 沒有回來時，不能直接顯示「成功」。
-       * 因為後端可能成功，也可能失敗。
-       * 先同步畫面，再明確告知使用者「無法確認」。
+       * 這裡非常重要：
+       * 「後端 mutation 已經收到成功 callback」就是成功。
+       *
+       * 之前版本會在成功 callback 後再強制讀一次課程，
+       * 只要第二次讀取失敗，就會把已成功的預約誤顯示成
+       * 「無法確認這次操作結果」。
+       *
+       * 現在改成：
+       * 1. 先立即顯示成功並解除 Loading。
+       * 2. 再背景更新課程。
+       * 3. 背景更新失敗不再覆蓋已成功結果。
        */
-      function refreshAfterUnknownResult() {
-
-        if (refreshStarted || finished) {
-          return;
-        }
-
+      function refreshInBackground() {
+        if (refreshStarted) return;
         refreshStarted = true;
 
-        refreshClassesSilently(
-          function(latestData) {
-
-            if (finished) {
-              return;
+        setTimeout(function() {
+          refreshClassesSilently(
+            function(latestData) {
+              if (finished) {
+                applyBookingData(latestData);
+              }
+            },
+            function(error) {
+              console.warn(
+                "背景更新課程失敗，不影響已完成的操作：",
+                error
+              );
             }
-
-            selectedClassIds = [];
-            applyBookingData(latestData);
-            finish();
-
-            showStatus(
-              "系統沒有收到操作回應，已重新整理課程資料；請確認最新狀態。",
-              "info"
-            );
-
-          },
-          function(error) {
-
-            console.error(
-              "操作結果確認失敗：",
-              error
-            );
-
-            finish();
-
-            showStatus(
-              "無法確認這次操作結果，請重新整理後再確認。",
-              "error"
-            );
-          }
-        );
+          );
+        }, 200);
       }
 
       window[callbackName] = function(response) {
         if (finished) return;
 
         try {
-          if (!response) throw new Error("GAS 沒有回傳資料");
-          if (!response.success) {
-            throw new Error(response.message || "操作失敗");
+          if (!response) {
+            throw new Error("GAS 沒有回傳資料");
           }
 
-          refreshAfterSuccess(response.data || {});
+          if (!response.success) {
+            throw new Error(
+              response.message || "操作失敗"
+            );
+          }
+
+          const data = response.data || {};
+
+          /*
+           * 後端已明確回 success：
+           * 不再等待第二個 API 來「確認」成功。
+           */
+          showSuccess(data);
+          finish();
+          selectedClassIds = [];
+          updateBottomBar();
+
+          refreshInBackground();
 
         } catch (error) {
           console.error(error);
           finish();
-          showStatus(error.message || "操作失敗", "error");
+          showStatus(
+            error.message || "操作失敗",
+            "error"
+          );
         }
       };
 
+      /*
+       * mutation 的 JSONP 如果沒有 callback，
+       * 不能直接重送 mutation，否則可能造成重複預約。
+       *
+       * 因此只做一次「讀取課程」確認。
+       * 如果讀取成功，就更新畫面；
+       * 如果讀取也失敗，只顯示「請重新整理確認」，不重送。
+       */
+      function confirmUnknownResult() {
+        if (finished) return;
+
+        finished = true;
+        cleanup();
+        isSubmitting = false;
+        hideLoading();
+        updateBottomBar();
+
+        refreshClassesSilently(
+          function(latestData) {
+            selectedClassIds = [];
+            applyBookingData(latestData);
+            showStatus(
+              "系統已重新整理課程資料，請確認最新狀態。",
+              "info"
+            );
+          },
+          function(error) {
+            console.error(
+              "操作結果確認失敗：",
+              error
+            );
+            showStatus(
+              "目前無法確認操作結果，請重新開啟課程預約確認；請勿連續重複送出。",
+              "error"
+            );
+          }
+        );
+      }
+
       script.onerror = function() {
-        if (!finished) {
-          refreshAfterUnknownResult();
-        }
+        confirmUnknownResult();
       };
 
       let url =
@@ -1620,21 +1724,25 @@
         "&_t=" + Date.now();
 
       Object.keys(params || {}).forEach(function(key) {
-        url += "&" + encodeURIComponent(key) + "=" + encodeURIComponent(params[key]);
+        url +=
+          "&" +
+          encodeURIComponent(key) +
+          "=" +
+          encodeURIComponent(params[key]);
       });
 
       script.src = url;
       document.body.appendChild(script);
 
-      // 2.5 秒沒有 JSONP callback 就開始背景同步。
-      // 不再讓使用者一直看到 Loading。
-      fallbackTimer = setTimeout(function() {
+      /*
+       * 最多等待 6 秒；超時只做一次讀取確認，絕不重送 mutation。
+       */
+      timeoutTimer = setTimeout(function() {
         if (!finished) {
-          refreshAfterUnknownResult();
+          confirmUnknownResult();
         }
-      }, 2500);
+      }, 6000);
     }
-
 
     /*
      * ==========================
