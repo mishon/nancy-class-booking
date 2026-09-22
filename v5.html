@@ -1212,6 +1212,25 @@
 
 
             if (
+              booking.isOffline
+            ) {
+
+              const label =
+                document.createElement(
+                  "span"
+                );
+
+              label.className =
+                "guest-label";
+
+              label.textContent =
+                "（線下登記）";
+
+              name.appendChild(
+                label
+              );
+
+            } else if (
               booking.isGuest
             ) {
 
@@ -1226,10 +1245,20 @@
               label.textContent =
                 "（代訂）";
 
-
               name.appendChild(
                 label
               );
+
+            }
+
+
+            // 線下登記仍算會員的課程，
+            // 但不能透過 LIFF 取消。
+            if (booking.isOffline) {
+
+              item.appendChild(name);
+              myBox.appendChild(item);
+              return;
 
             }
 
@@ -1988,6 +2017,13 @@
           console.log(
             "【自己預約】GAS results =",
             data.results || []
+          );
+
+          console.log(
+            "【自己預約】線下既有預約 =",
+            (data.results || []).filter(function(r) {
+              return r.status === "OFFLINE_BOOKED";
+            })
           );
 
           const successDates =
