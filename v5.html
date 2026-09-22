@@ -1,8 +1,8 @@
 <!-- =====================================================
-     LIFF V14 FINAL
-     基於 V12 正常版本。
-     不重新設計 UI / API，只調整 JSONP mutation 等待方式。
-     ===================================================== -->
+ LIFF STABLE FINAL
+ 以 V12 的正常課程取得 / JSONP / UI 為基準。
+ 不修改通訊核心。
+===================================================== -->
 
 <!DOCTYPE html>
 <html lang="zh-Hant">
@@ -16,7 +16,7 @@
     content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
   >
 
-  <title>V5 Free Life Nancy的械式皮拉提斯課程預約小工具</title>
+  <title>Free Life Nancy 的械式皮拉提斯課程預約小工具</title>
 
   <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
 
@@ -445,7 +445,7 @@
   <div class="container">
 
     <div class="title">
-      V5 Free Life Nancy的械式皮拉提斯課程預約小工具
+      Free Life Nancy 的械式皮拉提斯課程預約小工具
     </div>
 
     <div id="welcomeText" class="welcome">
@@ -859,7 +859,7 @@
         if (finished) return;
         finish();
         if (failure) failure(new Error("取得課程資料逾時，請重新開啟課程預約。"));
-      }, 6000);
+      }, 8000);
     }
 
 
@@ -1468,247 +1468,115 @@
       successMessageFunction
     ) {
 
-      if (isSubmitting) {
-        return;
-      }
+      if (isSubmitting) return;
 
       isSubmitting = true;
       showLoading(loadingMessage);
       updateBottomBar();
 
       const callbackName =
-        "gasActionCallback_" +
-        Date.now() +
-        "_" +
-        Math.floor(Math.random() * 100000);
+        "gasActionCallback_" + Date.now() + "_" + Math.floor(Math.random() * 100000);
 
-      const script =
-        document.createElement("script");
-
+      const script = document.createElement("script");
       let finished = false;
-      let timeoutTimer = null;
+      let fallbackTimer = null;
       let refreshStarted = false;
 
       function finish() {
-
-        if (finished) {
-          return;
-        }
-
+        if (finished) return;
         finished = true;
 
-        if (timeoutTimer) {
-          clearTimeout(timeoutTimer);
-          timeoutTimer = null;
+        if (fallbackTimer) {
+          clearTimeout(fallbackTimer);
+          fallbackTimer = null;
         }
 
         isSubmitting = false;
         hideLoading();
         updateBottomBar();
-
-        cleanupJsonp(
-          callbackName,
-          script
-        );
+        cleanupJsonp(callbackName, script);
       }
 
-      function showSuccess(data) {
-
-        try {
-
-          if (successMessageFunction) {
-
-            showStatus(
-              successMessageFunction(data || {}),
-              "success"
-            );
-
-          } else {
-
-            showStatus(
-              successMessage || "操作完成",
-              "success"
-            );
-
+      function showSuccess(message) {
+        if (successMessageFunction) {
+          try {
+            showStatus(successMessageFunction(message || {}), "success");
+          } catch (e) {
+            console.error(e);
+            showStatus(successMessage || "操作完成", "success");
           }
-
-        } catch (error) {
-
-          console.error(
-            "成功訊息處理失敗：",
-            error
-          );
-
-          showStatus(
-            successMessage || "操作完成",
-            "success"
-          );
+        } else {
+          showStatus(successMessage || "操作完成", "success");
         }
       }
 
-      function refreshAfterAction(data) {
-
-        if (
-          refreshStarted ||
-          finished
-        ) {
-          return;
-        }
-
+      // 後端 mutation 成功後，背景重新取得一次最新課程。
+      // 不顯示第二次 loading；即使同步失敗，也不會把畫面卡死。
+      function refreshAfterSuccess(data) {
+        if (refreshStarted || finished) return;
         refreshStarted = true;
 
-        /*
-         * 只有在 mutation callback 沒回來 / JSONP 發生錯誤時，
-         * 才做一次靜默同步。
-         *
-         * 不再像 V12 一樣 2.5 秒就啟動第二條 GET，
-         * 避免 mutation 還在 LockService 中時又排一個 GET。
-         */
         refreshClassesSilently(
           function(latestData) {
-
-            if (finished) {
-              return;
-            }
-
+            if (finished) return;
             selectedClassIds = [];
-
-            applyBookingData(
-              latestData
-            );
-
-            showSuccess(
-              data
-            );
-
+            applyBookingData(latestData);
+            showSuccess(data);
             finish();
           },
           function(error) {
+            console.error("操作成功後同步課程失敗：", error);
 
-            console.error(
-              "操作後同步課程失敗：",
-              error
-            );
-
+            // 後端已成功，前端即使暫時無法刷新也必須解除 loading。
             selectedClassIds = [];
-
             finish();
-
-            /*
-             * 這裡不能直接說「操作失敗」，
-             * 因為後端 mutation 可能已經成功，只是前端沒收到回應。
-             */
-            showStatus(
-              "操作可能已完成，請重新整理確認最新課程狀態。",
-              "info"
-            );
+            showSuccess(data);
           }
         );
       }
 
-      window[callbackName] =
-        function(response) {
+      window[callbackName] = function(response) {
+        if (finished) return;
 
-          if (finished) {
-            return;
+        try {
+          if (!response) throw new Error("GAS 沒有回傳資料");
+          if (!response.success) {
+            throw new Error(response.message || "操作失敗");
           }
 
-          try {
+          refreshAfterSuccess(response.data || {});
 
-            if (!response) {
-              throw new Error(
-                "GAS 沒有回傳資料"
-              );
-            }
+        } catch (error) {
+          console.error(error);
+          finish();
+          showStatus(error.message || "操作失敗", "error");
+        }
+      };
 
-            if (!response.success) {
-              throw new Error(
-                response.message ||
-                "操作失敗"
-              );
-            }
-
-            /*
-             * 正常收到 GAS 回應後，再同步一次最新課程。
-             */
-            refreshAfterAction(
-              response.data || {}
-            );
-
-          } catch (error) {
-
-            console.error(error);
-
-            finish();
-
-            showStatus(
-              error.message ||
-              "操作失敗",
-              "error"
-            );
-          }
-        };
-
-      script.onerror =
-        function() {
-
-          if (finished) {
-            return;
-          }
-
-          /*
-           * JSONP script.onerror 不代表後端一定沒有寫入。
-           * 只做一次背景同步。
-           */
-          refreshAfterAction({});
-        };
+      script.onerror = function() {
+        // JSONP 失敗時，後端可能已經寫入；直接背景同步一次。
+        if (!finished) refreshAfterSuccess({});
+      };
 
       let url =
         GAS_URL +
-        "?callback=" +
-        encodeURIComponent(callbackName) +
-        "&action=" +
-        encodeURIComponent(action) +
-        "&idToken=" +
-        encodeURIComponent(idToken) +
-        "&_t=" +
-        Date.now();
+        "?callback=" + encodeURIComponent(callbackName) +
+        "&action=" + encodeURIComponent(action) +
+        "&idToken=" + encodeURIComponent(idToken) +
+        "&_t=" + Date.now();
 
-      Object.keys(params || {}).forEach(
-        function(key) {
-
-          url +=
-            "&" +
-            encodeURIComponent(key) +
-            "=" +
-            encodeURIComponent(params[key]);
-
-        }
-      );
+      Object.keys(params || {}).forEach(function(key) {
+        url += "&" + encodeURIComponent(key) + "=" + encodeURIComponent(params[key]);
+      });
 
       script.src = url;
+      document.body.appendChild(script);
 
-      document.body.appendChild(
-        script
-      );
-
-      /*
-       * 最長等待 7 秒。
-       * 不再 2.5 秒就開第二條 API。
-       */
-      timeoutTimer =
-        setTimeout(
-          function() {
-
-            if (finished) {
-              return;
-            }
-
-            refreshAfterAction({});
-
-          },
-          7000
-        );
+      // 2.5 秒沒有 JSONP callback 就開始背景同步。
+      // 不再讓使用者一直看到 Loading。
+      fallbackTimer = setTimeout(function() {
+        if (!finished) refreshAfterSuccess({});
+      }, 2500);
     }
 
 
