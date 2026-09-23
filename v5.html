@@ -891,8 +891,8 @@
      * ------------------------------------------------------------
      * 靜默重新取得課程
      *
-     * 不顯示 loading。
-     * 給「預約成功但 callback 沒回來」時使用。
+     * 不顯示 loading，資料交給呼叫端的 success callback 處理。
+     * 給「callback 沒回來」時的確認讀取，以及背景更新使用。
      * ------------------------------------------------------------
      */
 
@@ -904,20 +904,14 @@
       fetchBookingData(
         function(data) {
 
-          try {
-
-            applyBookingData(data);
-
-            if (success) {
+          if (success) {
+            try {
               success(data);
+            } catch (error) {
+              if (failure) {
+                failure(error);
+              }
             }
-
-          } catch (error) {
-
-            if (failure) {
-              failure(error);
-            }
-
           }
 
         },
@@ -1638,7 +1632,7 @@
      * 共用：送出後如果 callback 沒回來，
      *       用最新課程資料確認結果。
      *
-     * fallbackDelay = 6000ms
+     * timeout = 12000ms（GAS 含課程資料讀取約 8-12 秒）
      * ============================================================
      */
 
@@ -1713,8 +1707,10 @@
       }
 
       /*
-       * 先顯示成功並解除 Loading，再背景更新課程。
-       * 背景更新失敗不覆蓋已成功結果。
+       * callback 已成功回來並帶有 data.classes：
+       * 畫面已由 applyBookingData(data) 即時更新。
+       * 此背景更新在 3 秒後補一次讀取，確保資料最新；
+       * 失敗只記 console，不影響已成功的操作結果。
        */
       function refreshInBackground() {
         if (refreshStarted) return;
@@ -1723,9 +1719,7 @@
         setTimeout(function() {
           refreshClassesSilently(
             function(latestData) {
-              if (finished) {
-                applyBookingData(latestData);
-              }
+              applyBookingData(latestData);
             },
             function(error) {
               console.warn(
@@ -1734,7 +1728,7 @@
               );
             }
           );
-        }, 200);
+        }, 3000);
       }
 
       window[callbackName] = function(response) {
@@ -1776,9 +1770,12 @@
       };
 
       /*
-       * mutation 的 JSONP 如果沒有 callback，
+       * mutation 的 JSONP 如果沒有 callback（逾時或 onerror），
        * 不能直接重送 mutation，否則可能造成重複預約。
        * 只做一次「讀取課程」確認。
+       *
+       * 修正：loading 保持顯示直到確認完成，
+       * 避免「loading 先消失 → 舊畫面閃現 → 才出現訊息」的視覺問題。
        */
       function confirmUnknownResult() {
         if (finished) return;
@@ -1786,13 +1783,16 @@
         finished = true;
         cleanup();
         isSubmitting = false;
-        hideLoading();
-        updateBottomBar();
+
+        // 保持 loading，只更新提示文字，不先閃出舊畫面
+        showLoading("正在確認操作結果，請稍候...");
 
         refreshClassesSilently(
           function(latestData) {
             selectedClassIds = [];
             applyBookingData(latestData);
+            hideLoading();
+            updateBottomBar();
             showStatus(
               "系統已重新整理課程資料，請確認最新狀態。",
               "info"
@@ -1803,6 +1803,8 @@
               "操作結果確認失敗：",
               error
             );
+            hideLoading();
+            updateBottomBar();
             showStatus(
               "目前無法確認操作結果，請重新開啟課程預約確認；請勿連續重複送出。",
               "error"
@@ -1833,12 +1835,13 @@
       script.src = url;
       document.body.appendChild(script);
 
-      // 最多等待 6 秒；超時只做一次讀取確認，絕不重送 mutation
+      // GAS 取消/預約後需讀課程資料回傳，最多約 10 秒；
+      // 等待 12 秒超時才進入確認讀取，不重送 mutation
       timeoutTimer = setTimeout(function() {
         if (!finished) {
           confirmUnknownResult();
         }
-      }, 6000);
+      }, 12000);
     }
 
     /*
