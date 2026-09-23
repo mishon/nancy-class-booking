@@ -2,6 +2,12 @@
  LIFF STABLE FINAL
  以 V12 的正常課程取得 / JSONP / UI 為基準。
  不修改通訊核心。
+ 修正紀錄 2026-09-23：
+   - 自己預約（綠框）vs 代訂（橙框）顏色區別
+   - confirm/alert 改用自訂 Modal（消除系統對話框 hostname 字樣）
+   - updateBottomBar() 合併重複 forEach（效能優化）
+   - 移除從未呼叫的 cleanupJsonp() 死碼
+   - guest modal 姓名驗證改為 modal 內 inline 錯誤訊息
 ===================================================== -->
 
 <!DOCTYPE html>
@@ -111,9 +117,29 @@
       color: #999;
     }
 
-    .class-card.has-my-booking {
+    /* 自己已預約：綠框 */
+    .class-card.has-self-booking {
       border-color: #4caf50;
       background: #f5fff6;
+    }
+
+    /* 只有代訂（幫朋友預約），自己沒有預約：橙框 */
+    .class-card.has-guest-booking {
+      border-color: #ff9800;
+      background: #fff8f0;
+    }
+
+    /* 同時有自己預約和代訂：自己預約（綠）優先 */
+    .class-card.has-self-booking.has-guest-booking {
+      border-color: #4caf50;
+      background: #f5fff6;
+    }
+
+    /* 選取覆蓋有預約的顏色 */
+    .class-card.selected.has-self-booking,
+    .class-card.selected.has-guest-booking {
+      border-color: #1a73e8;
+      background: #f4f8ff;
     }
 
     .class-header {
@@ -179,7 +205,7 @@
 
     .guest-label {
       font-size: 12px;
-      color: #1565c0;
+      color: #e65100;
       margin-left: 5px;
     }
 
@@ -238,7 +264,7 @@
     }
 
     .main-button.secondary {
-      background: #4caf50;
+      background: #ef6c00;
     }
 
     .main-button:disabled {
@@ -330,6 +356,15 @@
       margin-bottom: 15px;
     }
 
+    /* 自訂確認對話框的訊息，支援多行 */
+    .modal-text-pre {
+      color: #333;
+      line-height: 1.7;
+      margin-bottom: 15px;
+      white-space: pre-wrap;
+      font-size: 15px;
+    }
+
     .guest-input {
       width: 100%;
       border: 1px solid #ccc;
@@ -341,6 +376,18 @@
 
     .guest-input:focus {
       border-color: #1a73e8;
+    }
+
+    /* 輸入框下方的 inline 錯誤訊息 */
+    .input-error {
+      display: none;
+      color: #c62828;
+      font-size: 13px;
+      margin-top: 6px;
+    }
+
+    .input-error.show {
+      display: block;
     }
 
     .modal-buttons {
@@ -368,6 +415,10 @@
       color: white;
     }
 
+    .modal-confirm.danger {
+      background: #d32f2f;
+    }
+
     .empty {
       text-align: center;
       padding: 40px 20px;
@@ -388,6 +439,40 @@
 
     <div id="loadingText" class="loading-text">
       載入中，請稍候...
+    </div>
+
+  </div>
+
+
+  <!-- 自訂確認對話框（取代 window.confirm，消除系統對話框的 hostname 字樣） -->
+
+  <div id="confirmModal" class="modal">
+
+    <div class="modal-box">
+
+      <div id="confirmModalTitle" class="modal-title"></div>
+
+      <div id="confirmModalText" class="modal-text-pre"></div>
+
+      <div class="modal-buttons">
+
+        <button
+          class="modal-button modal-cancel"
+          onclick="rejectConfirm()"
+        >
+          取消
+        </button>
+
+        <button
+          id="confirmModalOk"
+          class="modal-button modal-confirm"
+          onclick="resolveConfirm()"
+        >
+          確定
+        </button>
+
+      </div>
+
     </div>
 
   </div>
@@ -416,6 +501,8 @@
         maxlength="30"
         placeholder="例如：阿華"
       >
+
+      <div id="guestNameError" class="input-error"></div>
 
       <div class="modal-buttons">
 
@@ -530,93 +617,90 @@
 
 
     async function init() {
-  const status = document.getElementById("status");
-  const welcome = document.getElementById("welcomeText");
+      const welcome = document.getElementById("welcomeText");
 
-  try {
-    // 先確定 HTML / JavaScript 本身有正常執行
-    welcome.textContent = "V5 正在啟動...";
+      try {
+        welcome.textContent = "V5 正在啟動...";
 
-    showStatus("① 開始初始化 LIFF...", "info");
+        showStatus("① 開始初始化 LIFF...", "info");
 
-    // 防止 liff.init() 無限卡住
-    const initPromise = liff.init({
-      liffId: LIFF_ID,
-      withLoginOnExternalBrowser: true
-    });
+        const initPromise = liff.init({
+          liffId: LIFF_ID,
+          withLoginOnExternalBrowser: true
+        });
 
-    const timeoutPromise = new Promise(function(_, reject) {
-      setTimeout(function() {
-        reject(
-          new Error(
-            "LIFF 初始化超過 15 秒，可能是 LINE LIFF 初始化沒有完成。"
-          )
+        const timeoutPromise = new Promise(function(_, reject) {
+          setTimeout(function() {
+            reject(
+              new Error(
+                "LIFF 初始化超過 15 秒，可能是 LINE LIFF 初始化沒有完成。"
+              )
+            );
+          }, 15000);
+        });
+
+        await Promise.race([
+          initPromise,
+          timeoutPromise
+        ]);
+
+        showStatus("② LIFF 初始化完成", "success");
+
+        console.log("LIFF 初始化完成");
+        console.log("LIFF ID:", LIFF_ID);
+        console.log("isInClient:", liff.isInClient());
+        console.log("isLoggedIn:", liff.isLoggedIn());
+
+        if (!liff.isLoggedIn()) {
+
+          showStatus(
+            "③ LINE 尚未登入",
+            "error"
+          );
+
+          throw new Error(
+            "LINE 尚未登入，請重新從 LINE 開啟課程預約。"
+          );
+        }
+
+        showStatus(
+          "③ LINE 登入狀態正常",
+          "success"
         );
-      }, 15000);
-    });
 
-    await Promise.race([
-      initPromise,
-      timeoutPromise
-    ]);
+        idToken = liff.getIDToken();
 
-    showStatus("② LIFF 初始化完成", "success");
+        if (!idToken) {
+          throw new Error(
+            "無法取得 LINE ID Token"
+          );
+        }
 
-    console.log("LIFF 初始化完成");
-    console.log("LIFF ID:", LIFF_ID);
-    console.log("isInClient:", liff.isInClient());
-    console.log("isLoggedIn:", liff.isLoggedIn());
+        showStatus(
+          "④ 已取得 LINE 身分，正在取得課程...",
+          "info"
+        );
 
-    if (!liff.isLoggedIn()) {
+        console.log("已取得 LINE ID Token");
 
-      showStatus(
-        "③ LINE 尚未登入",
-        "error"
-      );
+        loadClasses();
 
-      throw new Error(
-        "LINE 尚未登入，請重新從 LINE 開啟課程預約。"
-      );
+      } catch (error) {
+
+        console.error(
+          "LIFF 初始化失敗:",
+          error
+        );
+
+        hideLoading();
+
+        showStatus(
+          "❌ " +
+          (error.message || String(error)),
+          "error"
+        );
+      }
     }
-
-    showStatus(
-      "③ LINE 登入狀態正常",
-      "success"
-    );
-
-    idToken = liff.getIDToken();
-
-    if (!idToken) {
-      throw new Error(
-        "無法取得 LINE ID Token"
-      );
-    }
-
-    showStatus(
-      "④ 已取得 LINE 身分，正在取得課程...",
-      "info"
-    );
-
-    console.log("已取得 LINE ID Token");
-
-    loadClasses();
-
-  } catch (error) {
-
-    console.error(
-      "LIFF 初始化失敗:",
-      error
-    );
-
-    hideLoading();
-
-    showStatus(
-      "❌ " +
-      (error.message || String(error)),
-      "error"
-    );
-  }
-}
 
 
     function showLoading(message) {
@@ -666,6 +750,54 @@
       status.className =
         "status " +
         (type || "info");
+    }
+
+
+    /*
+     * ============================================================
+     * 自訂確認對話框
+     *
+     * 取代 window.confirm()，避免系統對話框顯示 hostname 字樣。
+     * ============================================================
+     */
+
+    let _confirmCallback = null;
+
+
+    function showConfirm(title, message, onConfirm, onCancel, isDanger) {
+
+      document.getElementById("confirmModalTitle").textContent =
+        title || "確認";
+
+      document.getElementById("confirmModalText").textContent =
+        message || "";
+
+      const okBtn = document.getElementById("confirmModalOk");
+      okBtn.className = "modal-button modal-confirm" +
+        (isDanger ? " danger" : "");
+
+      _confirmCallback = {
+        onConfirm: onConfirm || null,
+        onCancel: onCancel || null
+      };
+
+      document.getElementById("confirmModal").style.display = "flex";
+    }
+
+
+    function resolveConfirm() {
+      document.getElementById("confirmModal").style.display = "none";
+      const cb = _confirmCallback;
+      _confirmCallback = null;
+      if (cb && cb.onConfirm) cb.onConfirm();
+    }
+
+
+    function rejectConfirm() {
+      document.getElementById("confirmModal").style.display = "none";
+      const cb = _confirmCallback;
+      _confirmCallback = null;
+      if (cb && cb.onCancel) cb.onCancel();
     }
 
 
@@ -992,9 +1124,22 @@
         cls.myBookings || [];
 
 
-      const hasMyBooking =
-        myBookings.length > 0 ||
-        cls.bookedByMe === true;
+      /*
+       * 區分自己預約 vs 代訂：
+       *   hasSelfBooking：myBookings 中有 isGuest=false 的項目
+       *   hasGuestBooking：myBookings 中有 isGuest=true 的項目
+       *
+       * 顏色邏輯：
+       *   只有自己預約 → 綠框
+       *   只有代訂     → 橙框
+       *   兩者都有     → 綠框優先（代表本人也出席）
+       */
+      const hasSelfBooking =
+        myBookings.some(function(b) { return !b.isGuest; }) ||
+        (cls.bookedByMe === true && myBookings.length === 0);
+
+      const hasGuestBooking =
+        myBookings.some(function(b) { return b.isGuest; });
 
 
       const selected =
@@ -1015,10 +1160,18 @@
       }
 
 
-      if (hasMyBooking) {
+      if (hasSelfBooking) {
 
         cardClass +=
-          " has-my-booking";
+          " has-self-booking";
+
+      }
+
+
+      if (hasGuestBooking) {
+
+        cardClass +=
+          " has-guest-booking";
 
       }
 
@@ -1406,14 +1559,12 @@
 
 
       /*
-       * 自己預約：
-       *
-       * 選到任何「已經是自己的課程」
-       * 就不能按自己預約。
+       * [效能優化] 原本兩個分開的 forEach 各自查詢 classes.find()，
+       * 合併成一個迴圈同時計算 canSelfBook 和 canGuestBook。
        */
 
-      let canSelfBook =
-        count > 0;
+      let canSelfBook = count > 0;
+      let canGuestBook = count > 0;
 
 
       selectedClassIds.forEach(
@@ -1422,12 +1573,7 @@
           const cls =
             classes.find(
               function(item) {
-
-                return String(
-                  item.classId
-                ) ===
-                String(classId);
-
+                return String(item.classId) === String(classId);
               }
             );
 
@@ -1440,16 +1586,25 @@
           const myBookings =
             cls.myBookings || [];
 
-
           const hasMyBooking =
             myBookings.length > 0 ||
             cls.bookedByMe === true;
 
-
+          /*
+           * 已預約的課程不能再自己預約。
+           */
           if (hasMyBooking) {
-
             canSelfBook = false;
+          }
 
+          /*
+           * 已滿的課程不能代訂。
+           */
+          if (
+            Number(cls.count) >=
+            Number(cls.maxPeople)
+          ) {
+            canGuestBook = false;
           }
 
         }
@@ -1464,50 +1619,6 @@
           count === 0 ||
           isSubmitting ||
           !canSelfBook;
-
-
-      /*
-       * 幫朋友預約：
-       *
-       * 只要有選課、且尚未滿，
-       * 就可以按。
-       *
-       * 已滿的課程不會被加入選擇，
-       * 但這裡仍保留簡單判斷。
-       */
-
-      let canGuestBook =
-        count > 0;
-
-
-      selectedClassIds.forEach(
-        function(classId) {
-
-          const cls =
-            classes.find(
-              function(item) {
-
-                return String(
-                  item.classId
-                ) ===
-                String(classId);
-
-              }
-            );
-
-
-          if (
-            cls &&
-            Number(cls.count) >=
-            Number(cls.maxPeople)
-          ) {
-
-            canGuestBook = false;
-
-          }
-
-        }
-      );
 
 
       document
@@ -1527,8 +1638,7 @@
      * 共用：送出後如果 callback 沒回來，
      *       用最新課程資料確認結果。
      *
-     * fallbackDelay = 1200ms
-     * 不再使用 8 秒長等待。
+     * fallbackDelay = 6000ms
      * ============================================================
      */
 
@@ -1603,17 +1713,8 @@
       }
 
       /*
-       * 這裡非常重要：
-       * 「後端 mutation 已經收到成功 callback」就是成功。
-       *
-       * 之前版本會在成功 callback 後再強制讀一次課程，
-       * 只要第二次讀取失敗，就會把已成功的預約誤顯示成
-       * 「無法確認這次操作結果」。
-       *
-       * 現在改成：
-       * 1. 先立即顯示成功並解除 Loading。
-       * 2. 再背景更新課程。
-       * 3. 背景更新失敗不再覆蓋已成功結果。
+       * 先顯示成功並解除 Loading，再背景更新課程。
+       * 背景更新失敗不覆蓋已成功結果。
        */
       function refreshInBackground() {
         if (refreshStarted) return;
@@ -1637,51 +1738,47 @@
       }
 
       window[callbackName] = function(response) {
-      if (finished) return;
-    
-      try {
-        if (!response) {
-          throw new Error("GAS 沒有回傳資料");
-        }
-    
-        if (!response.success) {
-          throw new Error(
-            response.message || "操作失敗"
+        if (finished) return;
+
+        try {
+          if (!response) {
+            throw new Error("GAS 沒有回傳資料");
+          }
+
+          if (!response.success) {
+            throw new Error(
+              response.message || "操作失敗"
+            );
+          }
+
+          const data = response.data || {};
+
+          // 後端已回傳最新課程資料，直接更新畫面
+          if (data.classes && Array.isArray(data.classes)) {
+            applyBookingData(data);
+          }
+
+          showSuccess(data);
+          finish();
+          selectedClassIds = [];
+          updateBottomBar();
+
+          refreshInBackground();
+
+        } catch (error) {
+          console.error(error);
+          finish();
+          showStatus(
+            error.message || "操作失敗",
+            "error"
           );
         }
-    
-        const data = response.data || {};
-    
-        // ★★★ 新增：後端已經回傳最新課程資料，
-        // 直接更新 LIFF 畫面，不必等待第二次 API。
-        if (data.classes && Array.isArray(data.classes)) {
-          applyBookingData(data);
-        }
-    
-        showSuccess(data);
-        finish();
-        selectedClassIds = [];
-        updateBottomBar();
-    
-        refreshInBackground();
-    
-      } catch (error) {
-        console.error(error);
-        finish();
-        showStatus(
-          error.message || "操作失敗",
-          "error"
-        );
-      }
-    };
+      };
 
       /*
        * mutation 的 JSONP 如果沒有 callback，
        * 不能直接重送 mutation，否則可能造成重複預約。
-       *
-       * 因此只做一次「讀取課程」確認。
-       * 如果讀取成功，就更新畫面；
-       * 如果讀取也失敗，只顯示「請重新整理確認」，不重送。
+       * 只做一次「讀取課程」確認。
        */
       function confirmUnknownResult() {
         if (finished) return;
@@ -1736,9 +1833,7 @@
       script.src = url;
       document.body.appendChild(script);
 
-      /*
-       * 最多等待 6 秒；超時只做一次讀取確認，絕不重送 mutation。
-       */
+      // 最多等待 6 秒；超時只做一次讀取確認，絕不重送 mutation
       timeoutTimer = setTimeout(function() {
         if (!finished) {
           confirmUnknownResult();
@@ -1767,26 +1862,22 @@
         selectedClassIds.slice();
 
 
-      if (
-        !confirm(
-          "確定要預約所選的 " +
-          ids.length +
-          " 堂課嗎？"
-        )
-      ) {
+      showConfirm(
+        "確認預約",
+        "確定要預約所選的 " + ids.length + " 堂課嗎？",
+        function() {
 
-        return;
-      }
+          runBookingAction(
+            "submitBookings",
+            {
+              selectedClassIds:
+                JSON.stringify(ids)
+            },
+            "預約處理中，請稍候...",
+            "預約完成"
+          );
 
-
-      runBookingAction(
-        "submitBookings",
-        {
-          selectedClassIds:
-            JSON.stringify(ids)
-        },
-        "預約處理中，請稍候...",
-        "預約完成"
+        }
       );
     }
 
@@ -1814,6 +1905,10 @@
         )
         .value = "";
 
+      // 清除上次的 inline 錯誤訊息
+      const errorEl = document.getElementById("guestNameError");
+      errorEl.textContent = "";
+      errorEl.className = "input-error";
 
       document
         .getElementById(
@@ -1870,12 +1965,18 @@
           .value
           .trim();
 
+      const errorEl = document.getElementById("guestNameError");
 
+
+      // 姓名驗證改為 modal 內 inline 錯誤，不用系統 alert()
       if (!guestName) {
 
-        alert(
-          "請輸入參加者姓名"
-        );
+        errorEl.textContent = "請輸入參加者姓名";
+        errorEl.className = "input-error show";
+
+        document
+          .getElementById("guestNameInput")
+          .focus();
 
         return;
       }
@@ -1885,12 +1986,14 @@
         guestName.length > 30
       ) {
 
-        alert(
-          "姓名最多 30 個字"
-        );
+        errorEl.textContent = "姓名最多 30 個字";
+        errorEl.className = "input-error show";
 
         return;
       }
+
+
+      errorEl.className = "input-error";
 
 
       if (
@@ -1913,13 +2016,13 @@
       );
 
       if (!ids.length) {
-        alert("沒有選擇任何課程");
+        showStatus("沒有選擇任何課程", "error");
+        closeGuestModal();
         return;
       }
 
       // =====================================================
       // 把「實際準備送給 GAS 的日期」顯示給使用者確認
-      // 避免畫面看的是 A、B、C，實際送出的卻是其他日期。
       // =====================================================
       const selectedDateTexts = ids
         .map(function(classId) {
@@ -1958,80 +2061,84 @@
         " 堂課嗎？\n\n" +
         selectedDateTexts.join("\n");
 
-      if (!confirm(confirmMessage)) {
-        return;
-      }
-
+      // 先關 guest modal，再開確認 modal
       closeGuestModal();
 
+      showConfirm(
+        "確認代訂",
+        confirmMessage,
+        function() {
 
-      runBookingAction(
-        "submitGuestBookings",
-        {
-          guestName:
-            guestName,
+          runBookingAction(
+            "submitGuestBookings",
+            {
+              guestName:
+                guestName,
 
-          selectedClassIds:
-            JSON.stringify(ids)
-        },
-        "正在幫「" +
-        guestName +
-        "」預約，請稍候...",
-        "代訂完成",
-        function(data) {
+              selectedClassIds:
+                JSON.stringify(ids)
+            },
+            "正在幫「" +
+            guestName +
+            "」預約，請稍候...",
+            "代訂完成",
+            function(data) {
 
-          console.log(
-            "【幫朋友預約】GAS 實際處理 requestedClassIds =",
-            data.requestedClassIds || []
-          );
+              console.log(
+                "【幫朋友預約】GAS 實際處理 requestedClassIds =",
+                data.requestedClassIds || []
+              );
 
-          console.log(
-            "【幫朋友預約】GAS results =",
-            data.results || []
-          );
+              console.log(
+                "【幫朋友預約】GAS results =",
+                data.results || []
+              );
 
-          const successCount =
-            (data.results || [])
-              .filter(
-                function(r) {
-                  return r.success;
-                }
-              )
-              .length;
+              const successCount =
+                (data.results || [])
+                  .filter(
+                    function(r) {
+                      return r.success;
+                    }
+                  )
+                  .length;
 
 
-          const successDates =
-            (data.results || [])
-              .filter(function(r) {
-                return r.success;
-              })
-              .map(function(r) {
-                const cls =
-                  classes.find(function(item) {
-                    return String(item.classId) ===
-                      String(r.classId);
+              const successDates =
+                (data.results || [])
+                  .filter(function(r) {
+                    return r.success;
+                  })
+                  .map(function(r) {
+                    const cls =
+                      classes.find(function(item) {
+                        return String(item.classId) ===
+                          String(r.classId);
+                      });
+
+                    return cls
+                      ? cls.date + "（" + cls.weekday + "）"
+                      : String(r.classId);
                   });
 
-                return cls
-                  ? cls.date + "（" + cls.weekday + "）"
-                  : String(r.classId);
-              });
+              if (successCount === 0) {
+                return (
+                  "「" +
+                  guestName +
+                  "」沒有新增成功的代訂課程"
+                );
+              }
 
-          if (successCount === 0) {
-            return (
-              "「" +
-              guestName +
-              "」沒有新增成功的代訂課程"
-            );
-          }
+              return (
+                "已幫「" +
+                guestName +
+                "」預約 " +
+                successCount +
+                " 堂課：\n" +
+                successDates.join("、")
+              );
 
-          return (
-            "已幫「" +
-            guestName +
-            "」預約 " +
-            successCount +
-            " 堂課：\n" +
-            successDates.join("、")
+            }
           );
 
         }
@@ -2057,32 +2164,32 @@
       }
 
 
-      if (
-        !confirm(
-          "確定要取消「" +
-          name +
-          "」在 " +
-          date +
-          " " +
-          time +
-          " 的預約嗎？"
-        )
-      ) {
-
-        return;
-      }
-
-
-      runBookingAction(
-        "cancelBookingById",
-        {
-          bookingId:
-            bookingId
-        },
-        "取消預約處理中，請稍候...",
-        "已取消「" +
+      showConfirm(
+        "確認取消",
+        "確定要取消「" +
         name +
-        "」的預約"
+        "」在 " +
+        date +
+        " " +
+        time +
+        " 的預約嗎？",
+        function() {
+
+          runBookingAction(
+            "cancelBookingById",
+            {
+              bookingId:
+                bookingId
+            },
+            "取消預約處理中，請稍候...",
+            "已取消「" +
+            name +
+            "」的預約"
+          );
+
+        },
+        null,
+        true  // isDanger → 紅色確定按鈕
       );
     }
 
@@ -2104,65 +2211,33 @@
       }
 
 
-      if (
-        !confirm(
-          "確定要取消「" +
-          name +
-          "」在 " +
-          date +
-          " " +
-          time +
-          " 的預約嗎？"
-        )
-      ) {
-
-        return;
-      }
-
-
-      runBookingAction(
-        "cancelBooking",
-        {
-          classId:
-            classId
-        },
-        "取消預約處理中，請稍候...",
-        "已取消「" +
+      showConfirm(
+        "確認取消",
+        "確定要取消「" +
         name +
-        "」的預約"
+        "」在 " +
+        date +
+        " " +
+        time +
+        " 的預約嗎？",
+        function() {
+
+          runBookingAction(
+            "cancelBooking",
+            {
+              classId:
+                classId
+            },
+            "取消預約處理中，請稍候...",
+            "已取消「" +
+            name +
+            "」的預約"
+          );
+
+        },
+        null,
+        true  // isDanger → 紅色確定按鈕
       );
-    }
-
-
-    function cleanupJsonp(
-      callbackName,
-      script
-    ) {
-
-      try {
-
-        delete window[
-          callbackName
-        ];
-
-      } catch (e) {
-
-        window[
-          callbackName
-        ] = undefined;
-
-      }
-
-
-      if (
-        script &&
-        script.parentNode
-      ) {
-
-        script.parentNode.removeChild(
-          script
-        );
-      }
     }
 
   </script>
