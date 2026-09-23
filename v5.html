@@ -1752,6 +1752,9 @@
 
           const data = response.data || {};
 
+          // 先清除選取，applyBookingData 繪製時卡片直接呈現正確顏色（不會先藍後綠）
+          selectedClassIds = [];
+
           // 後端已回傳最新課程資料，直接更新畫面
           if (data.classes && Array.isArray(data.classes)) {
             applyBookingData(data);
@@ -1759,7 +1762,6 @@
 
           showSuccess(data);
           finish();
-          selectedClassIds = [];
           updateBottomBar();
 
           refreshInBackground();
