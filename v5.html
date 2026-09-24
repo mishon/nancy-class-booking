@@ -855,14 +855,17 @@
 
     function loadClasses() {
 
-      showLoading(
-        "正在取得課程資料，請稍候..."
-      );
+      showLoading("正在取得課程資料，請稍候...");
 
+      // 8 秒後若仍在載入（GAS 冷啟動），更新文字安撫使用者
+      var coldStartTimer = setTimeout(function() {
+        showLoading("伺服器初始化中，首次載入需較長時間，請耐心等候...");
+      }, 8000);
 
       fetchBookingData(
         function(data) {
 
+          clearTimeout(coldStartTimer);
           selectedClassIds = [];
 
           applyBookingData(data);
@@ -877,6 +880,7 @@
         },
         function(error) {
 
+          clearTimeout(coldStartTimer);
           hideLoading();
 
           console.error(error);
@@ -941,9 +945,9 @@
 
       /*
        * LIFF / GAS 使用 JSONP。
-       * 手機版 LINE 內建瀏覽器偶爾會第一次 script request 失敗，
-       * 因此只在「讀取課程」失敗時自動重試一次。
-       * 單次最多等待 6 秒，避免畫面長時間卡住。
+       * GAS 每日首次呼叫需冷啟動（Cold Start），可能耗時 10–25 秒。
+       * 單次逾時設為 20 秒；失敗後自動重試一次（總計最多 40 秒）。
+       * 8 秒後若仍在等待，自動更新 loading 文字提示使用者。
        */
 
       let attempt = 0;
@@ -1060,7 +1064,7 @@
               "取得課程資料逾時，請重新開啟課程預約。"
             )
           );
-        }, 6000);
+        }, 20000);
       }
 
       request();
